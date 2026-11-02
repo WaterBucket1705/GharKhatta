@@ -34,6 +34,7 @@ interface HeaderAndVoiceBarProps {
   activeMember: FamilyMember;
   setActiveMember: (member: FamilyMember) => void;
   onApplyParsedCommand: (cmd: ParsedHinglishCommand) => void;
+  onResetDemoData: () => void;
   currentDay: number;
 }
 
@@ -47,6 +48,7 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
   activeMember,
   setActiveMember,
   onApplyParsedCommand,
+  onResetDemoData,
   currentDay,
 }) => {
   const t = UI_TEXT[language];
@@ -272,8 +274,15 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
               </span>
             </div>
 
-            {/* Language Switcher + PWA Install Button */}
+            {/* Language Switcher + PWA Install Button + Reset Demo Data */}
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onResetDemoData}
+                className="px-3 py-1.5 min-h-[36px] rounded-lg bg-[#FAF8F5] hover:bg-rose-50 border border-stone-300 hover:border-rose-300 text-stone-700 hover:text-rose-800 text-xs font-semibold transition-colors whitespace-nowrap shrink-0"
+              >
+                Reset Demo Data
+              </button>
               <PWAInstallButton />
               <div className="flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-stone-400" />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RotateCcw, Trash2, CheckCircle2 } from 'lucide-react';
 import {
   BadaUdhaarLoan,
   CashBucketType,
@@ -51,50 +52,77 @@ interface StoredKhataState {
   activeTab?: ActiveTab;
 }
 
-function loadSavedState(): Partial<StoredKhataState> {
-  if (typeof window === 'undefined') return {};
+function getFreshDemoDefaults(): StoredKhataState {
+  return {
+    staffList: structuredClone(INITIAL_STAFF),
+    cashLedger: structuredClone(INITIAL_CASH_LEDGER),
+    loans: structuredClone(INITIAL_LOANS),
+    dhobiBatches: structuredClone(INITIAL_DHOBI_BATCHES),
+    milkConfig: structuredClone(INITIAL_MILK_CONFIG),
+    colonySlots: structuredClone(INITIAL_COLONY_SLOTS),
+    language: 'en',
+    activeMember: 'Mummy (Priya)',
+    selectedStaffId: 'sunita',
+    activeTab: 'dashboard',
+  };
+}
+
+function loadSavedState(): StoredKhataState {
+  const defaults = getFreshDemoDefaults();
+  if (typeof window === 'undefined') return defaults;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw) as Partial<StoredKhataState>;
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as Partial<StoredKhataState>;
+    return {
+      staffList: Array.isArray(parsed.staffList) ? parsed.staffList : defaults.staffList,
+      cashLedger: Array.isArray(parsed.cashLedger) ? parsed.cashLedger : defaults.cashLedger,
+      loans: Array.isArray(parsed.loans) ? parsed.loans : defaults.loans,
+      dhobiBatches: Array.isArray(parsed.dhobiBatches)
+        ? parsed.dhobiBatches
+        : defaults.dhobiBatches,
+      milkConfig: parsed.milkConfig ? parsed.milkConfig : defaults.milkConfig,
+      colonySlots: Array.isArray(parsed.colonySlots)
+        ? parsed.colonySlots
+        : defaults.colonySlots,
+      language: parsed.language || defaults.language,
+      activeMember: parsed.activeMember || defaults.activeMember,
+      selectedStaffId: parsed.selectedStaffId || defaults.selectedStaffId,
+      activeTab: parsed.activeTab || defaults.activeTab,
+    };
   } catch {
-    return {};
+    return defaults;
   }
 }
 
 export default function App() {
   const currentDay = 18; // November 18, 2026 active ledger day
-  const saved = loadSavedState();
+  const [initial] = useState<StoredKhataState>(() => loadSavedState());
 
+  const [resetVersion, setResetVersion] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    saved.activeTab || 'dashboard'
+    initial.activeTab || 'dashboard'
   );
-  const [language, setLanguage] = useState<Language>(saved.language || 'en');
+  const [language, setLanguage] = useState<Language>(initial.language);
   const [activeMember, setActiveMember] = useState<FamilyMember>(
-    saved.activeMember || 'Mummy (Priya)'
+    initial.activeMember
   );
 
-  const [staffList, setStaffList] = useState<StaffMember[]>(
-    saved.staffList && saved.staffList.length > 0 ? saved.staffList : INITIAL_STAFF
-  );
+  const [staffList, setStaffList] = useState<StaffMember[]>(initial.staffList);
   const [cashLedger, setCashLedger] = useState<CashLedgerEntry[]>(
-    saved.cashLedger || INITIAL_CASH_LEDGER
+    initial.cashLedger
   );
-  const [loans, setLoans] = useState<BadaUdhaarLoan[]>(
-    saved.loans || INITIAL_LOANS
-  );
+  const [loans, setLoans] = useState<BadaUdhaarLoan[]>(initial.loans);
   const [dhobiBatches, setDhobiBatches] = useState<DhobiBatch[]>(
-    saved.dhobiBatches || INITIAL_DHOBI_BATCHES
+    initial.dhobiBatches
   );
-  const [milkConfig, setMilkConfig] = useState<MilkConfig>(
-    saved.milkConfig || INITIAL_MILK_CONFIG
-  );
+  const [milkConfig, setMilkConfig] = useState<MilkConfig>(initial.milkConfig);
   const [colonySlots, setColonySlots] = useState<ColonyFreeSlot[]>(
-    saved.colonySlots || INITIAL_COLONY_SLOTS
+    initial.colonySlots
   );
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>(
-    saved.selectedStaffId || 'sunita'
+    initial.selectedStaffId || 'sunita'
   );
   const [receiptModalPayload, setReceiptModalPayload] =
     useState<ReceiptModalPayload | null>(null);
@@ -157,7 +185,56 @@ export default function App() {
 
   const showToast = (msg: string) => {
     setBannerFeedback(msg);
-    setTimeout(() => setBannerFeedback(null), 4000);
+    setTimeout(() => setBannerFeedback(null), 4500);
+  };
+
+  // Full Reset to Fresh Demo Defaults
+  const handleResetDemoData = () => {
+    const fresh = getFreshDemoDefaults();
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    } catch {
+      // Ignore
+    }
+    setStaffList(fresh.staffList);
+    setCashLedger(fresh.cashLedger);
+    setLoans(fresh.loans);
+    setDhobiBatches(fresh.dhobiBatches);
+    setMilkConfig(fresh.milkConfig);
+    setColonySlots(fresh.colonySlots);
+    setLanguage(fresh.language);
+    setActiveMember(fresh.activeMember);
+    setSelectedStaffId('sunita');
+    setActiveTab('dashboard');
+    setReceiptModalPayload(null);
+    setResetVersion((v) => v + 1);
+    showToast(
+      'Demo data reset! Restored all 4 household staff, udhaar ledgers, dhobi batches & milk calendar to initial November 2026 state.'
+    );
+  };
+
+  // Clear All Demo Data to Blank Slate (for starting fresh with user's own staff)
+  const handleClearAllDemoData = () => {
+    const emptyMilk: MilkConfig = {
+      vendorName: 'Daily Milk & Water Supply',
+      milkType: 'Buffalo / Cow Milk',
+      defaultDailyLiters: 2.0,
+      pricePerLiter: 70,
+      days: {},
+    };
+    setStaffList([]);
+    setCashLedger([]);
+    setLoans([]);
+    setDhobiBatches([]);
+    setMilkConfig(emptyMilk);
+    setColonySlots([]);
+    setSelectedStaffId('');
+    setActiveTab('dashboard');
+    setReceiptModalPayload(null);
+    setResetVersion((v) => v + 1);
+    showToast(
+      'Cleared all demo data! Your khata is now empty — tap "+ Add Unlimited Staff" to add your own household helpers.'
+    );
   };
 
   const handleAddNewStaff = (newStaff: StaffMember) => {
@@ -543,6 +620,7 @@ export default function App() {
     const targetStaffId = cmd.workerId || 'sunita';
     const targetStaff =
       staffList.find((s) => s.id === targetStaffId) || staffList[0];
+    if (!targetStaff) return;
 
     let nextStaffList = [...staffList];
     let nextCashLedger = [...cashLedger];
@@ -734,20 +812,25 @@ export default function App() {
         activeMember={activeMember}
         setActiveMember={setActiveMember}
         onApplyParsedCommand={handleApplyParsedCommand}
+        onResetDemoData={handleResetDemoData}
         currentDay={currentDay}
       />
 
       {bannerFeedback && (
         <div
           role="status"
-          className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4"
+          data-testid="status-toast-banner"
+          className="fixed bottom-16 lg:bottom-6 right-4 left-4 sm:left-auto sm:max-w-md z-50"
         >
-          <div className="p-3 rounded-xl bg-emerald-800 text-white text-xs font-semibold flex items-center justify-between">
-            <span>{bannerFeedback}</span>
+          <div className="p-3.5 rounded-xl bg-emerald-800 text-white text-xs font-semibold shadow-xl flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+              <span>{bannerFeedback}</span>
+            </span>
             <button
               type="button"
               onClick={() => setBannerFeedback(null)}
-              className="underline ml-4"
+              className="underline shrink-0"
             >
               Dismiss
             </button>
@@ -755,7 +838,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main key={resetVersion} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
         {activeTab === 'dashboard' && (
           <DashboardView
             staffList={staffList}
@@ -779,10 +862,11 @@ export default function App() {
             onOpenReceiptModal={setReceiptModalPayload}
             onNavigateTab={setActiveTab}
             onAddNewStaff={handleAddNewStaff}
+            onResetDemoData={handleResetDemoData}
           />
         )}
 
-        {activeTab === 'calendar' && (
+        {activeTab === 'calendar' && staffList.length > 0 && (
           <AttendanceCalendarView
             staffList={staffList}
             selectedStaffId={selectedStaffId}
@@ -799,7 +883,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'udhaar' && (
+        {activeTab === 'udhaar' && staffList.length > 0 && (
           <UdhaarLoansView
             staffList={staffList}
             selectedStaffId={selectedStaffId}
@@ -838,30 +922,28 @@ export default function App() {
         )}
       </main>
 
-      <footer className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
+      <footer className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
         <span>
           GharKhata — 100% Free Unlimited Household Staff, Attendance & Udhaar Ledger (Auto-Saved to LocalStorage)
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            try {
-              window.localStorage.removeItem(STORAGE_KEY);
-            } catch {
-              // Ignore
-            }
-            setStaffList(INITIAL_STAFF);
-            setCashLedger(INITIAL_CASH_LEDGER);
-            setLoans(INITIAL_LOANS);
-            setDhobiBatches(INITIAL_DHOBI_BATCHES);
-            setMilkConfig(INITIAL_MILK_CONFIG);
-            setColonySlots(INITIAL_COLONY_SLOTS);
-            showToast('Reset November 2026 household data to initial state');
-          }}
-          className="text-stone-600 hover:text-stone-900 underline"
-        >
-          Reset Demo Data
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetDemoData}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-200/80 hover:bg-stone-300 text-stone-800 transition-colors flex items-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Demo Data (Restore Defaults)</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleClearAllDemoData}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors flex items-center gap-1.5"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear All Demo Data (Start Empty)</span>
+          </button>
+        </div>
       </footer>
 
       <OfflineIndicator />

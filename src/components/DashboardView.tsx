@@ -49,6 +49,7 @@ interface DashboardViewProps {
   onOpenReceiptModal: (payload: ReceiptModalPayload) => void;
   onNavigateTab: (tab: ActiveTab) => void;
   onAddNewStaff: (newStaff: StaffMember) => void;
+  onResetDemoData: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -67,6 +68,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenReceiptModal,
   onNavigateTab,
   onAddNewStaff,
+  onResetDemoData,
 }) => {
   const t = UI_TEXT[language];
 
@@ -391,6 +393,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </span>
         </div>
 
+        {staffBreakdowns.length === 0 ? (
+          <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-4">
+            <h3 className="text-base font-bold text-stone-900">
+              Your Household Khata is Currently Empty
+            </h3>
+            <p className="text-xs text-stone-500 max-w-md mx-auto">
+              Add your own household maid, cook, mali, or driver profiles for free, or restore the 4 pre-loaded demo profiles at any time.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddStaffModal(true)}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors"
+              >
+                + Add First Household Staff Profile
+              </button>
+              <button
+                type="button"
+                onClick={onResetDemoData}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 transition-colors"
+              >
+                Restore 4 Demo Staff Profiles
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {staffBreakdowns.map(({ staff, fin }) => {
             const pctRemaining = Math.max(
@@ -623,6 +651,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             );
           })}
         </div>
+        )}
       </section>
 
       {/* Add Unlimited Staff Profile Modal */}
