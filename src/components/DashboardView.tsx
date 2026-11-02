@@ -50,7 +50,6 @@ interface DashboardViewProps {
   onOpenReceiptModal: (payload: ReceiptModalPayload) => void;
   onNavigateTab: (tab: ActiveTab) => void;
   onAddNewStaff: (newStaff: StaffMember) => void;
-  onResetDemoData: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -69,18 +68,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenReceiptModal,
   onNavigateTab,
   onAddNewStaff,
-  onResetDemoData,
 }) => {
   const t = UI_TEXT[language];
 
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
-  const [newStaffNameHi, setNewStaffNameHi] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState('Baby Nanny & Evening Helper');
-  const [newStaffSalary, setNewStaffSalary] = useState('6000');
+  const [newStaffRole, setNewStaffRole] = useState('');
+  const [newStaffSalary, setNewStaffSalary] = useState('');
   const [newStaffModel, setNewStaffModel] = useState<WorkerModelType>('fixed_monthly');
   const [newStaffLeaves, setNewStaffLeaves] = useState('2');
-  const [newStaffPhone, setNewStaffPhone] = useState('919811009988');
+  const [newStaffPhone, setNewStaffPhone] = useState('');
   const [addStaffError, setAddStaffError] = useState('');
 
   const staffBreakdowns = staffList.map((staff) => ({
@@ -122,10 +119,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const created: StaffMember = {
       id: `staff-${Date.now()}`,
       name: trimmedName,
-      nameHi: newStaffNameHi.trim() || trimmedName,
+      nameHi: trimmedName,
       role: newStaffRole.trim() || 'Household Helper',
-      roleHi: newStaffRole.trim() || 'घरेलू सहायक',
-      phone: newStaffPhone.trim() || '919800000000',
+      roleHi: newStaffRole.trim() || 'Household Helper',
+      phone: newStaffPhone.trim() || '',
       modelType: newStaffModel,
       baseSalary: numericSal,
       paidLeaveQuota: parseInt(newStaffLeaves, 10) || 2,
@@ -137,270 +134,188 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {
           id: 'task-1',
           labelEn: 'Morning Primary Duty',
-          labelHi: 'सुबह का मुख्य काम',
+          labelHi: 'Morning Primary Duty',
           skipPenalty: 50,
         },
         {
           id: 'task-2',
           labelEn: 'Evening Duty / Utensils',
-          labelHi: 'शाम का काम',
+          labelHi: 'Evening Duty / Utensils',
           skipPenalty: 50,
         },
       ],
       attendance: {},
       kyc: {
-        maskedAadhaar: 'XXXX-XXXX-7741',
-        homeVillage: 'Verified Local Resident',
-        emergencyContact: `+${newStaffPhone.trim() || '91 98110 09988'}`,
-        policeVerified: true,
-        policeVerificationId: `DEL-RWA-2026-${Math.floor(100 + Math.random() * 899)}`,
-        neighborReference: `Referred by ${activeMember}`,
-        upiId: `${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}@okaxis`,
+        maskedAadhaar: 'Not Added Yet',
+        homeVillage: 'Not Added Yet',
+        emergencyContact: newStaffPhone.trim() || 'Not Added Yet',
+        policeVerified: false,
+        policeVerificationId: 'PENDING-VERIFICATION',
+        neighborReference: `Added by ${activeMember}`,
+        upiId: `${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}@upi`,
         joinedSince: 'November 2026',
       },
     };
 
     onAddNewStaff(created);
     setNewStaffName('');
-    setNewStaffNameHi('');
+    setNewStaffRole('');
+    setNewStaffSalary('');
+    setNewStaffPhone('');
     setShowAddStaffModal(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* Month-at-a-Glance Hero */}
-      <section aria-label="November Household Financial Overview" className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* 1. FIRST: Today's Quick Attendance Strip */}
+      <section
+        aria-label="Today Quick Attendance Strip"
+        className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3.5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <p className="text-xs font-medium text-stone-500">
-                Nov 2026 · Day {currentDay}/30 · {activeMember}
+                Nov 2026 · Day {currentDay}/30 · Logged by {activeMember}
               </p>
               <InfoPopupButton
-                title="Live Household Salary & Udhaar Engine"
-                subtitle="November 2026 Overview"
-                formula="Net Left to Pay = Base Salary - Unpaid Leave Cut - Partial Task Cut + Overtime/Party Bhatta + Zero-Leave Bonus + Reimbursements - Chhota Advance - Bada Udhaar EMI"
-                description="GharKhata automatically calculates how much salary remains to be paid on the 1st of the month across all household staff."
-                breakdownItems={[
-                  { label: 'Total Monthly Base Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
-                  { label: 'Advances & Loan EMIs Cut', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
-                  { label: 'Staff Pocket Reimbursements', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
-                  { label: 'Net Remaining Payout', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                title="Auto-Present Attendance Rule"
+                subtitle="Zero Daily Friction"
+                description="All staff default to Present every morning. You only need to tap a button below when someone is Absent, takes a Half-Day, or earns +₹200 Guest Party Bhatta."
+                bullets={[
+                  'First 2 absences in a month use the Paid Leave Quota (₹0 salary cut).',
+                  'From the 3rd absence onwards, 1 day salary (Base ÷ 30) is automatically deducted.',
+                  'Tap any staff card below to open the full 30-day calendar for partial task skips (-₹50) or overtime hours.',
                 ]}
               />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-stone-900 mt-0.5">
-              {t.appSubtitle}
+            <h1 className="text-lg sm:text-xl font-bold text-stone-900 mt-0.5">
+              Today's Quick Attendance ({currentDay} Nov)
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {staffBreakdowns.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onMarkAllPresentToday}
+                className="px-4 py-2.5 min-h-[42px] text-xs font-semibold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t.markAllPresent} ({currentDay} Nov)</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {staffBreakdowns.length === 0 ? (
+          <div className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-stone-800">
+                No household staff added yet
+              </p>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Add your first household helper to start marking daily attendance and tracking salary.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setShowAddStaffModal(true)}
-              className="px-4 py-2.5 min-h-[42px] text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors whitespace-nowrap shrink-0"
             >
-              <UserPlus className="w-4 h-4 text-amber-400" />
-              <span>+ Add Unlimited Staff</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onMarkAllPresentToday}
-              className="px-4 py-2.5 min-h-[42px] text-xs font-semibold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{t.markAllPresent} ({currentDay} Nov)</span>
+              + Add First Staff Member
             </button>
           </div>
-        </div>
-
-        {/* 4-Column KPI Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-xs font-medium text-stone-500">{t.netPayoutLeftHero}</span>
-              <InfoPopupButton
-                title="Net Staff Payout Remaining"
-                subtitle="1st-of-Month Final Liability"
-                formula="Base - Unpaid Leaves - Task Skips + OT/Bhatta + Reimbursements - Advances - Loan EMI"
-                description="Live sum of remaining salary to pay across all unsettled household staff for November 2026."
-                breakdownItems={[
-                  { label: 'Base Monthly Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
-                  { label: 'Home Reimbursements (+Add)', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
-                  { label: 'Advances & Loan EMIs (-Cut)', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
-                  { label: 'Net Left to Pay', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
-                ]}
-              />
-            </div>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-emerald-700">
-                ₹{totalNetPayoutLeft.toLocaleString('en-IN')}
-              </span>
-              <span className="text-xs font-mono-num text-stone-500">
-                of ₹{totalBasePayroll.toLocaleString('en-IN')}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('udhaar')}
-            className="bg-white border border-stone-200 hover:border-amber-500 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
-          >
-            <span className="text-xs font-medium text-stone-500">{t.totalAdvancesHero}</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-amber-700">
-                -₹{totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}
-              </span>
-              <Wallet className="w-4 h-4 text-amber-600" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('dhobi_milk')}
-            className="bg-white border border-stone-200 hover:border-rose-400 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
-          >
-            <span className="text-xs font-medium text-stone-500">{t.pendingDhobiHero}</span>
-            <div className="mt-2 flex items-baseline justify-between gap-2">
-              <span
-                className={`text-2xl sm:text-3xl font-mono-num font-bold whitespace-nowrap ${
-                  dhobiSummary.pendingPiecesCount > 0 ? 'text-rose-600' : 'text-emerald-700'
-                }`}
-              >
-                {dhobiSummary.pendingPiecesCount} Pending
-              </span>
-              <Shirt className="w-4 h-4 text-rose-600 shrink-0" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('dhobi_milk')}
-            className="bg-white border border-stone-200 hover:border-emerald-600 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
-          >
-            <span className="text-xs font-medium text-stone-500">{t.milkBillHero}</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-stone-900">
-                ₹{milkSummary.grandTotal.toLocaleString('en-IN')}
-              </span>
-              <Milk className="w-4 h-4 text-emerald-700" />
-            </div>
-          </button>
-        </div>
-      </section>
-
-      {/* Today's Quick Attendance Strip */}
-      <section
-        aria-label="Today Quick Attendance Strip"
-        className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm sm:text-base font-bold text-stone-900">
-              Today's Quick Attendance ({currentDay} Nov)
-            </h2>
-            <InfoPopupButton
-              title="Auto-Present Attendance Rule"
-              subtitle="Zero Daily Friction"
-              description="All staff default to Present every morning. You only need to tap a button below when someone is Absent, takes a Half-Day, or earns +₹200 Guest Party Bhatta."
-              bullets={[
-                'First 2 absences in a month use the Paid Leave Quota (₹0 salary cut).',
-                'From the 3rd absence onwards, 1 day salary (Base ÷ 30) is automatically deducted.',
-                'Tap any staff card to open the full 30-day calendar for partial task skips (-₹50) or overtime hours.',
-              ]}
-            />
-          </div>
-          <span className="text-xs text-stone-500">
-            By {activeMember}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {staffBreakdowns.map(({ staff }) => {
-            const todayRecord = staff.attendance[currentDay];
-            const currentStatus = todayRecord?.status || 'present';
-            return (
-              <div
-                key={staff.id}
-                className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-col justify-between gap-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-stone-900">{staff.name}</p>
-                    <p className="text-xs text-stone-500">{staff.roleHi}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {staffBreakdowns.map(({ staff }) => {
+              const todayRecord = staff.attendance[currentDay];
+              const currentStatus = todayRecord?.status || 'present';
+              return (
+                <div
+                  key={staff.id}
+                  className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-col justify-between gap-2.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-stone-900">
+                        {language === 'hi' ? staff.nameHi : staff.name}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {language === 'hi' ? staff.roleHi : staff.role}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold ${
+                        currentStatus === 'absent'
+                          ? 'text-rose-600'
+                          : currentStatus === 'half_day' || currentStatus === 'partial_skip'
+                          ? 'text-amber-700'
+                          : 'text-emerald-700'
+                      }`}
+                    >
+                      {currentStatus === 'present'
+                        ? 'Present'
+                        : currentStatus === 'absent'
+                        ? 'Absent'
+                        : currentStatus === 'half_day'
+                        ? 'Half-Day'
+                        : 'Exception'}
+                    </span>
                   </div>
-                  <span
-                    className={`text-xs font-semibold ${
-                      currentStatus === 'absent'
-                        ? 'text-rose-600'
-                        : currentStatus === 'half_day' || currentStatus === 'partial_skip'
-                        ? 'text-amber-700'
-                        : 'text-emerald-700'
-                    }`}
-                  >
-                    {currentStatus === 'present'
-                      ? 'Present'
-                      : currentStatus === 'absent'
-                      ? 'Absent'
-                      : currentStatus === 'half_day'
-                      ? 'Half-Day'
-                      : 'Exception'}
-                  </span>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => onQuickMarkAttendance(staff.id, 'present')}
-                    className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                      currentStatus === 'present'
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-100'
-                    }`}
-                  >
-                    Present
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onQuickMarkAttendance(staff.id, 'absent')}
-                    className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                      currentStatus === 'absent'
-                        ? 'bg-rose-600 text-white'
-                        : 'bg-white border border-stone-300 text-stone-700 hover:bg-rose-50'
-                    }`}
-                  >
-                    Absent
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onQuickMarkAttendance(staff.id, 'half_day')}
-                    className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                      currentStatus === 'half_day'
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-white border border-stone-300 text-stone-700 hover:bg-amber-50'
-                    }`}
-                  >
-                    Half-Day
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onQuickMarkAttendance(staff.id, 'present', 200)}
-                    className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium bg-white border border-stone-300 text-emerald-800 hover:bg-emerald-50 transition-colors whitespace-nowrap shrink-0"
-                  >
-                    +₹200 Bhatta
-                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onQuickMarkAttendance(staff.id, 'present')}
+                      className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                        currentStatus === 'present'
+                          ? 'bg-emerald-700 text-white'
+                          : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onQuickMarkAttendance(staff.id, 'absent')}
+                      className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                        currentStatus === 'absent'
+                          ? 'bg-rose-600 text-white'
+                          : 'bg-white border border-stone-300 text-stone-700 hover:bg-rose-50'
+                      }`}
+                    >
+                      Absent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onQuickMarkAttendance(staff.id, 'half_day')}
+                      className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                        currentStatus === 'half_day'
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-white border border-stone-300 text-stone-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      Half-Day
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onQuickMarkAttendance(staff.id, 'present', 200)}
+                      className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium bg-white border border-stone-300 text-emerald-800 hover:bg-emerald-50 transition-colors whitespace-nowrap shrink-0"
+                    >
+                      +₹200 Bhatta
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Pre-Loaded + Unlimited Staff Cards with Live "Money Left to Give" Engine */}
+      {/* 2. SECOND: Household Staff Cards with Live "Money Left to Give" Engine */}
       <section aria-label="Household Staff Cards" className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-base sm:text-lg font-bold text-stone-900">
               Household Staff ({staffList.length})
@@ -412,27 +327,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               description="Tap the (?) icon next to any staff member's Net Left amount to inspect their exact rupee breakdown."
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAddStaffModal(true)}
+            className="px-4 py-2 min-h-[38px] text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
+          >
+            <UserPlus className="w-4 h-4 text-amber-400" />
+            <span>+ Add Unlimited Staff</span>
+          </button>
         </div>
 
         {staffBreakdowns.length === 0 ? (
-          <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-4">
+          <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-3">
             <h3 className="text-base font-bold text-stone-900">
-              Your Household Khata is Currently Empty
+              Start From a Clean Sheet — Add Your Household Staff
             </h3>
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <p className="text-xs text-stone-500 max-w-md mx-auto">
+              Add your maid, cook, driver, nanny, or gardener to track their attendance, paid leaves, advances, and monthly salary.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setShowAddStaffModal(true)}
                 className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors"
               >
                 + Add First Household Staff Profile
-              </button>
-              <button
-                type="button"
-                onClick={onResetDemoData}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 transition-colors"
-              >
-                Restore 4 Demo Staff Profiles
               </button>
             </div>
           </div>
@@ -454,12 +374,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="text-lg font-bold text-stone-900">
-                          {staff.name}{' '}
-                          <span className="text-xs font-medium text-stone-500">
-                            ({staff.nameHi})
-                          </span>
+                          {language === 'hi' ? staff.nameHi : staff.name}
                         </h3>
-                        <p className="text-xs text-stone-500">{staff.role}</p>
+                        <p className="text-xs text-stone-500">
+                          {language === 'hi' ? staff.roleHi : staff.role}
+                        </p>
                       </div>
 
                       <div className="text-right shrink-0">
@@ -662,6 +581,104 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </section>
 
+      {/* 3. THIRD: Monthly Totals & Household Financial Overview */}
+      <section aria-label="November Household Financial Overview" className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-stone-900">
+              Monthly Totals & Household Summary (Nov 2026)
+            </h2>
+            <InfoPopupButton
+              title="Live Household Salary & Udhaar Engine"
+              subtitle="November 2026 Overview"
+              formula="Net Left to Pay = Base Salary - Unpaid Leave Cut - Partial Task Cut + Overtime/Party Bhatta + Zero-Leave Bonus + Reimbursements - Chhota Advance - Bada Udhaar EMI"
+              description="GharKhata automatically calculates how much salary remains to be paid on the 1st of the month across all household staff."
+              breakdownItems={[
+                { label: 'Total Monthly Base Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
+                { label: 'Advances & Loan EMIs Cut', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
+                { label: 'Staff Pocket Reimbursements', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                { label: 'Net Remaining Payout', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
+              ]}
+            />
+          </div>
+        </div>
+
+        {/* 4-Column KPI Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-medium text-stone-500">{t.netPayoutLeftHero}</span>
+              <InfoPopupButton
+                title="Net Staff Payout Remaining"
+                subtitle="1st-of-Month Final Liability"
+                formula="Base - Unpaid Leaves - Task Skips + OT/Bhatta + Reimbursements - Advances - Loan EMI"
+                description="Live sum of remaining salary to pay across all unsettled household staff for November 2026."
+                breakdownItems={[
+                  { label: 'Base Monthly Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
+                  { label: 'Home Reimbursements (+Add)', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                  { label: 'Advances & Loan EMIs (-Cut)', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
+                  { label: 'Net Left to Pay', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                ]}
+              />
+            </div>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-emerald-700">
+                ₹{totalNetPayoutLeft.toLocaleString('en-IN')}
+              </span>
+              <span className="text-xs font-mono-num text-stone-500">
+                of ₹{totalBasePayroll.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('udhaar')}
+            className="bg-white border border-stone-200 hover:border-amber-500 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
+          >
+            <span className="text-xs font-medium text-stone-500">{t.totalAdvancesHero}</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-amber-700">
+                -₹{totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}
+              </span>
+              <Wallet className="w-4 h-4 text-amber-600" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('dhobi_milk')}
+            className="bg-white border border-stone-200 hover:border-rose-400 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
+          >
+            <span className="text-xs font-medium text-stone-500">{t.pendingDhobiHero}</span>
+            <div className="mt-2 flex items-baseline justify-between gap-2">
+              <span
+                className={`text-2xl sm:text-3xl font-mono-num font-bold whitespace-nowrap ${
+                  dhobiSummary.pendingPiecesCount > 0 ? 'text-rose-600' : 'text-emerald-700'
+                }`}
+              >
+                {dhobiSummary.pendingPiecesCount} Pending
+              </span>
+              <Shirt className="w-4 h-4 text-rose-600 shrink-0" />
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('dhobi_milk')}
+            className="bg-white border border-stone-200 hover:border-emerald-600 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
+          >
+            <span className="text-xs font-medium text-stone-500">{t.milkBillHero}</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl sm:text-3xl font-mono-num font-bold text-stone-900">
+                ₹{milkSummary.grandTotal.toLocaleString('en-IN')}
+              </span>
+              <Milk className="w-4 h-4 text-emerald-700" />
+            </div>
+          </button>
+        </div>
+      </section>
+
       {/* Add Unlimited Staff Profile Modal */}
       {showAddStaffModal && (
         <div
@@ -691,29 +708,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateStaffSubmit} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-semibold text-stone-700 block mb-1">
-                  Staff Name (e.g. Kamla Didi / Bahadur Security)
-                </label>
-                <input
-                  type="text"
-                  value={newStaffName}
-                  onChange={(e) => setNewStaffName(e.target.value)}
-                  placeholder="Enter staff name"
-                  className="w-full px-3.5 py-2.5 text-sm bg-[#FAF8F5] border border-stone-300 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">
-                    Hindi Name (Optional)
+                    Staff Name
                   </label>
                   <input
                     type="text"
-                    value={newStaffNameHi}
-                    onChange={(e) => setNewStaffNameHi(e.target.value)}
-                    placeholder="e.g. कमला दीदी"
+                    value={newStaffName}
+                    onChange={(e) => setNewStaffName(e.target.value)}
+                    placeholder="e.g. Kamla Didi / Bahadur"
                     className="w-full px-3.5 py-2.5 text-sm bg-[#FAF8F5] border border-stone-300 rounded-xl"
                   />
                 </div>

@@ -30,6 +30,7 @@ interface DhobiMilkViewProps {
   onAddDhobiBatch: (counts: DhobiItemCounts, note: string) => void;
   onUpdateDhobiBatchReturn: (batchId: string, returnedCounts: DhobiItemCounts) => void;
   onUpdateMilkDay: (day: number, record: MilkDayRecord) => void;
+  onUpdateMilkSettings: (defaultDailyLiters: number, pricePerLiter: number) => void;
 }
 
 export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
@@ -40,18 +41,25 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
   onAddDhobiBatch,
   onUpdateDhobiBatchReturn,
   onUpdateMilkDay,
+  onUpdateMilkSettings,
 }) => {
-  // Dhobi New Batch State
+  // Dhobi New Batch State (starts clean at 0)
   const [counts, setCounts] = useState<DhobiItemCounts>({
-    shirts: 8,
-    trousers: 4,
-    sarees_bedsheets: 2,
+    shirts: 0,
+    trousers: 0,
+    sarees_bedsheets: 0,
     heavy_suits: 0,
   });
-  const [batchNote, setBatchNote] = useState('Regular weekday ironing bag');
+  const [batchNote, setBatchNote] = useState('');
 
   // Milk Selected Day State
   const [selectedMilkDay, setSelectedMilkDay] = useState<number>(currentDay);
+  const [dailyLitersInput, setDailyLitersInput] = useState<string>(
+    String(milkConfig.defaultDailyLiters)
+  );
+  const [pricePerLiterInput, setPricePerLiterInput] = useState<string>(
+    String(milkConfig.pricePerLiter)
+  );
 
   const { totalPieces: draftPieces, batchCost: draftCost } =
     calculateDhobiBatchCost(counts);
@@ -78,7 +86,20 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
     e.preventDefault();
     if (draftPieces <= 0) return;
     onAddDhobiBatch(counts, batchNote.trim() || 'Laundry handover');
+    setCounts({
+      shirts: 0,
+      trousers: 0,
+      sarees_bedsheets: 0,
+      heavy_suits: 0,
+    });
     setBatchNote('');
+  };
+
+  const handleSaveMilkDefaults = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nextLiters = Math.max(0, parseFloat(dailyLitersInput) || 0);
+    const nextPrice = Math.max(1, parseFloat(pricePerLiterInput) || 70);
+    onUpdateMilkSettings(nextLiters, nextPrice);
   };
 
   const handleSetMilkLiters = (liters: number, status: 'default' | 'paused' | 'extra') => {
@@ -110,9 +131,9 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Left 6 Cols: Model 3 — Raju Dhobi Piece-Count Return Tracker */}
+      {/* Left 6 Cols: Model 3 — Dhobi Piece-Count Return Tracker */}
       <section
-        aria-label="Raju Dhobi Piece-Count Return Tracker"
+        aria-label="Dhobi Piece-Count Return Tracker"
         className="lg:col-span-6 space-y-6"
       >
         <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-5">
@@ -120,11 +141,11 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
             <div className="flex items-center gap-2">
               <Shirt className="w-5 h-5 text-emerald-700 shrink-0" />
               <h2 className="text-base sm:text-lg font-bold text-stone-900">
-                Raju Dhobi — Ironing & Return Khata
+                Dhobi — Ironing & Return Khata
               </h2>
               <InfoPopupButton
                 title="Model 3: Piece-Count Return Tracker"
-                subtitle="Raju Dhobi Rate Card & Missing Clothes Guard"
+                subtitle="Dhobi Rate Card & Missing Clothes Guard"
                 formula="Batch Cost = (Shirts × ₹7) + (Trousers × ₹10) + (Sarees/Bedsheets × ₹25) + (Heavy Suits × ₹120)"
                 description="Tracks every batch handed over to the dhobi and highlights unreturned pieces in red until checked back in."
                 breakdownItems={[
@@ -166,7 +187,11 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
           ) : (
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-semibold text-emerald-900 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-              <span>All {dhobiSummary.totalGiven} clothes given this month have been returned!</span>
+              <span>
+                {dhobiSummary.totalGiven === 0
+                  ? 'No laundry batches logged yet. Use the counters below to log clothes given to the dhobi.'
+                  : `All ${dhobiSummary.totalGiven} clothes given this month have been returned!`}
+              </span>
             </div>
           )}
 
@@ -247,7 +272,8 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 whitespace-nowrap shrink-0"
+                disabled={draftPieces <= 0}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-50 whitespace-nowrap shrink-0"
               >
                 Log {draftPieces} Pcs Batch (₹{draftCost})
               </button>
@@ -257,88 +283,94 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
           {/* Active & Past Dhobi Batches with Partial Check-In */}
           <div className="space-y-3 pt-3 border-t border-stone-100">
             <h3 className="text-sm font-bold text-stone-900">
-              Laundry Batches & Return Check-In
+              Laundry Batches & Return Check-In ({dhobiBatches.length})
             </h3>
 
-            {dhobiBatches.map((batch) => {
-              const pendingCount = Math.max(0, batch.totalGiven - batch.totalReturned);
-              const pendingShirts = Math.max(
-                0,
-                batch.givenCounts.shirts - batch.returnedCounts.shirts
-              );
-              const pendingBedsheets = Math.max(
-                0,
-                batch.givenCounts.sarees_bedsheets - batch.returnedCounts.sarees_bedsheets
-              );
+            {dhobiBatches.length === 0 ? (
+              <div className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 text-xs text-stone-500">
+                No laundry batches logged yet. Increment the piece counters above and tap "Log Batch" to start tracking.
+              </div>
+            ) : (
+              dhobiBatches.map((batch) => {
+                const pendingCount = Math.max(0, batch.totalGiven - batch.totalReturned);
+                const pendingShirts = Math.max(
+                  0,
+                  batch.givenCounts.shirts - batch.returnedCounts.shirts
+                );
+                const pendingBedsheets = Math.max(
+                  0,
+                  batch.givenCounts.sarees_bedsheets - batch.returnedCounts.sarees_bedsheets
+                );
 
-              return (
-                <div
-                  key={batch.id}
-                  className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">
-                        Given on {batch.givenDate} · {batch.totalGiven} Pieces ·{' '}
-                        <span className="font-mono-num text-emerald-800">₹{batch.batchCost}</span>
-                      </p>
-                      <p className="text-[11px] text-stone-500">
-                        Added by {batch.loggedBy} · {batch.loggedAt}
-                      </p>
+                return (
+                  <div
+                    key={batch.id}
+                    className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-bold text-stone-900">
+                          Given on {batch.givenDate} · {batch.totalGiven} Pieces ·{' '}
+                          <span className="font-mono-num text-emerald-800">₹{batch.batchCost}</span>
+                        </p>
+                        <p className="text-[11px] text-stone-500">
+                          Added by {batch.loggedBy} · {batch.loggedAt}
+                        </p>
+                      </div>
+
+                      {pendingCount > 0 ? (
+                        <span className="text-xs font-semibold text-rose-600">
+                          {batch.totalReturned} Returned · {pendingCount} Pending
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-emerald-700">
+                          All {batch.totalGiven} Returned
+                        </span>
+                      )}
                     </div>
 
-                    {pendingCount > 0 ? (
-                      <span className="text-xs font-semibold text-rose-600">
-                        {batch.totalReturned} Returned · {pendingCount} Pending
-                      </span>
-                    ) : (
-                      <span className="text-xs font-semibold text-emerald-700">
-                        All {batch.totalGiven} Returned
-                      </span>
+                    {batch.note && (
+                      <p className="text-xs text-stone-700">{batch.note}</p>
                     )}
-                  </div>
 
-                  {batch.note && (
-                    <p className="text-xs text-stone-700">{batch.note}</p>
-                  )}
+                    {pendingCount > 0 && (
+                      <div className="pt-2 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs text-rose-700 font-medium">
+                          Unreturned: {pendingBedsheets > 0 ? `${pendingBedsheets} Bedsheet ` : ''}
+                          {pendingShirts > 0 ? `${pendingShirts} Shirts` : ''}
+                        </span>
 
-                  {pendingCount > 0 && (
-                    <div className="pt-2 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs text-rose-700 font-medium">
-                        Unreturned: {pendingBedsheets > 0 ? `${pendingBedsheets} Bedsheet ` : ''}
-                        {pendingShirts > 0 ? `${pendingShirts} Shirts` : ''}
-                      </span>
-
-                      <div className="flex items-center gap-2">
-                        {pendingShirts > 0 && (
+                        <div className="flex items-center gap-2">
+                          {pendingShirts > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateDhobiBatchReturn(batch.id, {
+                                  ...batch.returnedCounts,
+                                  shirts: batch.returnedCounts.shirts + 1,
+                                })
+                              }
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-stone-300 text-stone-800 hover:bg-stone-100"
+                            >
+                              +1 Shirt Returned
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() =>
-                              onUpdateDhobiBatchReturn(batch.id, {
-                                ...batch.returnedCounts,
-                                shirts: batch.returnedCounts.shirts + 1,
-                              })
+                              onUpdateDhobiBatchReturn(batch.id, { ...batch.givenCounts })
                             }
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-stone-300 text-stone-800 hover:bg-stone-100"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800"
                           >
-                            +1 Shirt Returned
+                            Check-In All Remaining ({pendingCount})
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onUpdateDhobiBatchReturn(batch.id, { ...batch.givenCounts })
-                          }
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800"
-                        >
-                          Check-In All Remaining ({pendingCount})
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -361,7 +393,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
                     title="Model 4: Daily Quantity Exception Calendar"
                     subtitle={`${milkConfig.defaultDailyLiters}L ${milkConfig.milkType} @ ₹${milkConfig.pricePerLiter}/L`}
                     formula={`Monthly Bill = (Total Liters × ₹${milkConfig.pricePerLiter}/L) + Side Items (Paneer / Desi Ghee / Water Cans)`}
-                    description="Instead of logging milk every single morning, GharKhata assumes your standing 2.0L default and only asks you to tap dates when you paused delivery (0L), took extra (+1L), or bought side items."
+                    description="Configure your daily milk liters below. GharKhata calculates your monthly bill automatically and lets you tap any date when you paused delivery (0L), took extra, or bought side items."
                     breakdownItems={[
                       { label: 'Total Milk Delivered (Nov)', value: `${milkSummary.totalLiters}L (₹${milkSummary.milkCost.toLocaleString('en-IN')})` },
                       { label: 'Paused Out-of-Station Days', value: `${milkSummary.pausedDays} Days (0L)`, highlight: 'amber' },
@@ -371,7 +403,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
                   />
                 </div>
                 <p className="text-xs text-stone-500">
-                  Default: {milkConfig.defaultDailyLiters}L @ ₹{milkConfig.pricePerLiter}/L
+                  Default: {milkConfig.defaultDailyLiters}L/day @ ₹{milkConfig.pricePerLiter}/L
                 </p>
               </div>
             </div>
@@ -386,6 +418,52 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Configure Daily Milk Default Liters & Rate */}
+          <form
+            onSubmit={handleSaveMilkDefaults}
+            className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-wrap items-end gap-3 text-xs"
+          >
+            <div className="flex-1 min-w-[110px]">
+              <label
+                htmlFor="milk-default-liters-input"
+                className="font-semibold text-stone-700 block mb-1"
+              >
+                Daily Default Milk (L/day)
+              </label>
+              <input
+                id="milk-default-liters-input"
+                type="number"
+                step="0.5"
+                min="0"
+                value={dailyLitersInput}
+                onChange={(e) => setDailyLitersInput(e.target.value)}
+                className="w-full px-3 py-1.5 font-mono-num bg-white border border-stone-300 rounded-lg"
+              />
+            </div>
+            <div className="flex-1 min-w-[110px]">
+              <label
+                htmlFor="milk-rate-input"
+                className="font-semibold text-stone-700 block mb-1"
+              >
+                Price per Liter (₹/L)
+              </label>
+              <input
+                id="milk-rate-input"
+                type="number"
+                min="1"
+                value={pricePerLiterInput}
+                onChange={(e) => setPricePerLiterInput(e.target.value)}
+                className="w-full px-3 py-1.5 font-mono-num bg-white border border-stone-300 rounded-lg"
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-3.5 py-2 rounded-lg font-semibold bg-stone-900 text-white hover:bg-stone-800 whitespace-nowrap shrink-0"
+            >
+              Save Daily Default
+            </button>
+          </form>
 
           {/* Summary Strip */}
           <div className="grid grid-cols-3 gap-3 text-xs">

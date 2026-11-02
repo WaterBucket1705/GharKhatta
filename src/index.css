@@ -10,6 +10,12 @@
     font-family: var(--font-sans);
     background-color: #FAF8F5;
     color: #1C1917;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  html.dark-theme body {
+    background-color: #1c1917;
+    color: #f5f5f4;
   }
 }
 
@@ -17,3 +23,137 @@
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* Deep Stone-900 Night Theme with Warm Emerald & Amber Accents */
+html.dark-theme .bg-\[\#FAF8F5\] {
+  background-color: #1c1917 !important;
+}
+
+html.dark-theme .bg-\[\#FAF8F5\]\/95 {
+  background-color: rgba(28, 25, 23, 0.95) !important;
+}
+
+html.dark-theme .bg-white {
+  background-color: #292524 !important;
+}
+
+html.dark-theme .bg-white\/95 {
+  background-color: rgba(41, 37, 36, 0.95) !important;
+}
+
+/* Nested sub-cards & inputs inside stone-800 cards */
+html.dark-theme .bg-white .bg-\[\#FAF8F5\] {
+  background-color: #1c1917 !important;
+}
+
+html.dark-theme .bg-stone-50,
+html.dark-theme .bg-stone-100,
+html.dark-theme .bg-stone-200\/80 {
+  background-color: #36312e !important;
+}
+
+/* Borders */
+html.dark-theme .border-stone-100,
+html.dark-theme .border-stone-200,
+html.dark-theme .border-stone-200\/80,
+html.dark-theme .border-stone-300 {
+  border-color: #44403c !important;
+}
+
+/* Typography Contrast on Dark Stone Surfaces */
+html.dark-theme .text-stone-900 {
+  color: #fafaf9 !important;
+}
+
+html.dark-theme .text-stone-800,
+html.dark-theme .text-stone-700 {
+  color: #e7e5e4 !important;
+}
+
+html.dark-theme .text-stone-600,
+html.dark-theme .text-stone-500 {
+  color: #a8a29e !important;
+}
+
+html.dark-theme .text-stone-400 {
+  color: #78716c !important;
+}
+
+/* Form Inputs & Selects in Dark Mode */
+html.dark-theme input,
+html.dark-theme select,
+html.dark-theme textarea {
+  background-color: #1c1917 !important;
+  color: #fafaf9 !important;
+  border-color: #57534e !important;
+}
+
+html.dark-theme input::placeholder,
+html.dark-theme textarea::placeholder {
+  color: #78716c !important;
+}
+
+/* Preserve & Enhance Warm Emerald Accents at Night */
+html.dark-theme .text-emerald-700,
+html.dark-theme .text-emerald-800,
+html.dark-theme .text-emerald-900 {
+  color: #34d399 !important;
+}
+
+html.dark-theme .bg-emerald-50,
+html.dark-theme .bg-emerald-50\/60,
+html.dark-theme .bg-emerald-50\/80,
+html.dark-theme .bg-emerald-50\/90 {
+  background-color: rgba(6, 78, 59, 0.35) !important;
+}
+
+html.dark-theme .border-emerald-200,
+html.dark-theme .border-emerald-300 {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+}
+
+/* Preserve & Enhance Warm Amber Accents at Night */
+html.dark-theme .text-amber-600,
+html.dark-theme .text-amber-700,
+html.dark-theme .text-amber-800,
+html.dark-theme .text-amber-900 {
+  color: #fbbf24 !important;
+}
+
+html.dark-theme .bg-amber-50,
+html.dark-theme .bg-amber-50\/70 {
+  background-color: rgba(120, 53, 15, 0.35) !important;
+}
+
+html.dark-theme .border-amber-200,
+html.dark-theme .border-amber-300 {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Preserve & Enhance Rose Warning Accents at Night */
+html.dark-theme .text-rose-600,
+html.dark-theme .text-rose-700,
+html.dark-theme .text-rose-800 {
+  color: #fb7185 !important;
+}
+
+html.dark-theme .bg-rose-50 {
+  background-color: rgba(136, 19, 55, 0.32) !important;
+}
+
+html.dark-theme .border-rose-200,
+html.dark-theme .border-rose-300 {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+}
+
+/* Dark Buttons (bg-stone-900) visibility against stone-800/900 backgrounds */
+html.dark-theme button.bg-stone-900 {
+  background-color: #44403c !important;
+  color: #fafaf9 !important;
+  border: 1px solid #57534e !important;
+}
+
+html.dark-theme button.bg-stone-900:hover {
+  background-color: #57534e !important;
+}
+

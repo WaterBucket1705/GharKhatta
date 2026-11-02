@@ -1,6 +1,6 @@
 export type Language = 'en' | 'hinglish' | 'hi';
 
-export type FamilyMember = 'Mummy (Priya)' | 'Papa (Anurag)' | 'Dadi';
+export type FamilyMember = string;
 
 export type WorkerModelType = 'fixed_monthly' | 'hourly_visit';
 

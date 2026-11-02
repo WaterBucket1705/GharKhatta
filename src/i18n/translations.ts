@@ -36,8 +36,9 @@ export const UI_TEXT: Record<
     navUdhaar: 'Udhaar & Settlement',
     navDhobiMilk: 'Dhobi & Milk',
     navVaultColony: 'ID Vault & Colony',
-    bolKeLikhoTitle: '8:30 AM Kitchen Voice Bar ("Bol Ke Likho")',
-    bolKeLikhoPlaceholder: 'Speak or type in Hinglish: e.g. "Sunita didi took ₹500 for gas cylinder today"',
+    bolKeLikhoTitle: '8:30 AM Kitchen Quick Bar ("Bol Ke Likho")',
+    bolKeLikhoPlaceholder:
+      'Tap here & use your keyboard Mic to speak (or type): e.g. "Sunita didi took ₹500 for gas cylinder today"',
     loggedInAs: 'Active Member:',
     netPayoutLeftHero: 'Net Staff Payout Left (Nov)',
     totalAdvancesHero: 'Advances & EMI Deducted',
@@ -62,7 +63,8 @@ export const UI_TEXT: Record<
     navDhobiMilk: 'Dhobi & Doodh',
     navVaultColony: 'ID Vault & Padosi',
     bolKeLikhoTitle: '8:30 AM Kitchen Mode ("Bol Ke Likho")',
-    bolKeLikhoPlaceholder: 'Bol ke likho: jaise "Sunita didi aaj nahi aayi aur kal ₹500 cylinder advance liya"',
+    bolKeLikhoPlaceholder:
+      'Apne keyboard ka Mic daba ke bolein (ya type karein): "Sunita didi aaj nahi aayi aur kal ₹500 cylinder advance liya"',
     loggedInAs: 'Family Member:',
     netPayoutLeftHero: 'Abhi Baki Pagar Dena Hai (Nov)',
     totalAdvancesHero: 'Total Advance & EMI Cut',
@@ -87,7 +89,8 @@ export const UI_TEXT: Record<
     navDhobiMilk: 'धोबी और दूध',
     navVaultColony: 'आईडी और कॉलोनी',
     bolKeLikhoTitle: '8:30 AM किचन मोड ("बोल के लिखो")',
-    bolKeLikhoPlaceholder: 'बोलें या लिखें: जैसे "सुनीता दीदी आज नहीं आई और ₹500 सिलेंडर एडवांस लिया"',
+    bolKeLikhoPlaceholder:
+      'अपने कीबोर्ड का माइक दबाकर बोलें (या लिखें): "सुनीता दीदी आज नहीं आई और ₹500 सिलेंडर एडवांस लिया"',
     loggedInAs: 'परिवार सदस्य:',
     netPayoutLeftHero: 'नवंबर बाकी पगार (कुल देना है)',
     totalAdvancesHero: 'कुल एडवांस और किस्त कटौती',

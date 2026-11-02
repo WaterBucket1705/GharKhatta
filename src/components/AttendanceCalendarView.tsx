@@ -14,6 +14,7 @@ import {
   CashLedgerEntry,
   DayAttendanceRecord,
   FamilyMember,
+  Language,
   ReceiptModalPayload,
   StaffMember,
 } from '../types/khata';
@@ -26,6 +27,7 @@ interface AttendanceCalendarViewProps {
   onSelectStaffId: (id: string) => void;
   cashLedger: CashLedgerEntry[];
   loans: BadaUdhaarLoan[];
+  language: Language;
   activeMember: FamilyMember;
   currentDay: number;
   onUpdateDayAttendance: (staffId: string, day: number, record: DayAttendanceRecord) => void;
@@ -43,6 +45,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   onSelectStaffId,
   cashLedger,
   loans,
+  language,
   activeMember,
   currentDay,
   onUpdateDayAttendance,
@@ -52,6 +55,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
   onOpenReceiptModal,
 }) => {
   const staff = staffList.find((s) => s.id === selectedStaffId) || staffList[0];
+  const staffDisplayName = language === 'hi' ? staff.nameHi : staff.name;
   const [selectedDay, setSelectedDay] = useState<number>(currentDay);
   const [newGardenNote, setNewGardenNote] = useState('');
 
@@ -145,7 +149,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                   : 'bg-[#FAF8F5] text-stone-700 hover:bg-stone-200 border border-stone-200'
               }`}
             >
-              {s.name} ({s.modelType === 'hourly_visit' ? 'Hourly/Visit' : 'Monthly Fixed'})
+              {language === 'hi' ? s.nameHi : s.name} ({s.modelType === 'hourly_visit' ? 'Hourly/Visit' : 'Monthly Fixed'})
             </button>
           ))}
         </div>
@@ -184,7 +188,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-stone-100 pb-3">
           <div className="flex items-center gap-2">
             <h2 className="text-base sm:text-lg font-bold text-stone-900">
-              {staff.name} — Live Salary Breakdown (Nov 2026)
+              {staffDisplayName} — Live Salary Breakdown (Nov 2026)
             </h2>
             <InfoPopupButton
               title={`${staff.name} — Attendance & Leave Rules`}
@@ -389,7 +393,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                 Selected Date · Logged by {dayRecord.loggedBy}
               </span>
               <h3 className="text-lg font-bold text-stone-900">
-                {selectedDay} Nov 2026 — {staff.name}
+                {selectedDay} Nov 2026 — {staffDisplayName}
               </h3>
             </div>
             <span className="text-xs font-mono-num text-stone-500">{dayRecord.loggedAt}</span>
@@ -482,10 +486,9 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                       ) : (
                         <CheckSquare className="w-4 h-4 text-emerald-700 shrink-0" />
                       )}
-                      <div>
-                        <p className="text-xs font-semibold">{task.labelEn}</p>
-                        <p className="text-[11px] text-stone-500">{task.labelHi}</p>
-                      </div>
+                      <p className="text-xs font-semibold">
+                        {language === 'hi' ? task.labelHi : task.labelEn}
+                      </p>
                     </div>
                     <span
                       className={`text-xs font-mono-num font-semibold ${

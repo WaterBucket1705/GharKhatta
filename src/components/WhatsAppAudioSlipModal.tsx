@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, Share2, Copy, Check, X, ShieldCheck } from 'lucide-react';
-import { ReceiptModalPayload } from '../types/khata';
+import { Language, ReceiptModalPayload } from '../types/khata';
 import { buildHindiVoiceScript, buildWhatsAppShareText } from '../utils/mathEngine';
 
 interface WhatsAppAudioSlipModalProps {
   payload: ReceiptModalPayload | null;
+  language: Language;
   onClose: () => void;
 }
 
 export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
   payload,
+  language,
   onClose,
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -26,13 +28,18 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
 
   if (!payload) return null;
 
+  const isHi = language === 'hi';
+  const isHinglish = language === 'hinglish';
+  const displayStaffName = isHi ? payload.staffNameHi : payload.staffName;
+  const displayEntryLabel = isHi ? payload.entryTypeLabelHi : payload.entryTypeLabel;
+
   const hindiScript = buildHindiVoiceScript(payload);
   const whatsappText = buildWhatsAppShareText(payload);
   const whatsappUrl = `https://wa.me/${payload.phone}?text=${encodeURIComponent(whatsappText)}`;
 
   const handlePlayHindiAudio = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setSpeechNotice('Playing Hindi voice transcript below (Web Speech API verified):');
+      setSpeechNotice('Playing voice transcript below:');
       setIsSpeaking(true);
       setTimeout(() => setIsSpeaking(false), 3500);
       return;
@@ -54,7 +61,7 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
 
       utterance.onstart = () => {
         setIsSpeaking(true);
-        setSpeechNotice('Speaking aloud in Hindi (hi-IN) for staff verification...');
+        setSpeechNotice('Speaking aloud for staff verification...');
       };
       utterance.onend = () => {
         setIsSpeaking(false);
@@ -64,7 +71,7 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
       };
 
       setIsSpeaking(true);
-      setSpeechNotice('Speaking aloud in Hindi (hi-IN) for staff verification...');
+      setSpeechNotice('Speaking aloud for staff verification...');
       window.speechSynthesis.speak(utterance);
     } catch {
       setIsSpeaking(false);
@@ -92,10 +99,16 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
           <div>
             <p className="text-xs font-medium text-emerald-800 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <span>Bilingual Staff Verification Slip (घरखाता पर्ची)</span>
+              <span>
+                {isHi
+                  ? 'स्टाफ हिसाब पर्ची'
+                  : isHinglish
+                  ? 'Staff Hisab Parchi'
+                  : 'Staff Verification Slip'}
+              </span>
             </p>
             <h2 id="receipt-modal-title" className="text-lg font-bold text-stone-900 mt-0.5">
-              {payload.staffName} · {payload.staffNameHi}
+              {displayStaffName}
             </h2>
           </div>
           <button
@@ -108,24 +121,26 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
           </button>
         </div>
 
-        {/* Visual Bilingual Slip */}
+        {/* Visual Slip in Active Language */}
         <div className="bg-[#FAF8F5] border border-stone-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between text-xs text-stone-500 border-b border-stone-200 pb-2">
-            <span>Date: {payload.dateStr}</span>
-            <span>Logged by {payload.loggedBy}</span>
+            <span>{isHi ? `तारीख: ${payload.dateStr}` : `Date: ${payload.dateStr}`}</span>
+            <span>{isHi ? `दर्ज किया: ${payload.loggedBy}` : `Logged by ${payload.loggedBy}`}</span>
           </div>
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-stone-600">Entry Logged (अद्यतन):</span>
-              <span className="font-semibold text-stone-900">
-                {payload.entryTypeLabel} ({payload.entryTypeLabelHi})
+              <span className="text-stone-600">
+                {isHi ? 'विवरण:' : isHinglish ? 'Entry:' : 'Entry Logged:'}
               </span>
+              <span className="font-semibold text-stone-900">{displayEntryLabel}</span>
             </div>
 
             {payload.amountChanged !== undefined && payload.amountChanged > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-stone-600">Amount (राशि):</span>
+                <span className="text-stone-600">
+                  {isHi ? 'राशि:' : isHinglish ? 'Rashi (Amount):' : 'Amount:'}
+                </span>
                 <span
                   className={`font-mono-num font-bold ${
                     payload.isAddition ? 'text-emerald-700' : 'text-amber-700'
@@ -137,14 +152,26 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
             )}
 
             <div className="flex items-center justify-between">
-              <span className="text-stone-600">Paid Leaves Used (इस महीने छुट्टी):</span>
+              <span className="text-stone-600">
+                {isHi
+                  ? 'इस महीने छुट्टी:'
+                  : isHinglish
+                  ? 'Paid Chhutti Used:'
+                  : 'Paid Leaves Used:'}
+              </span>
               <span className="font-mono-num font-medium text-stone-900">
-                {payload.paidLeavesUsed} / {payload.paidLeaveQuota} Quota
+                {payload.paidLeavesUsed} / {payload.paidLeaveQuota}
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-stone-600">Total Advance Taken (कुल एडवांस):</span>
+              <span className="text-stone-600">
+                {isHi
+                  ? 'कुल एडवांस:'
+                  : isHinglish
+                  ? 'Total Advance Taken:'
+                  : 'Total Advance Taken:'}
+              </span>
               <span className="font-mono-num font-medium text-amber-700">
                 -₹{payload.totalBorrowedThisMonth.toLocaleString('en-IN')}
               </span>
@@ -152,7 +179,13 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
 
             {payload.activeEmiCut > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-stone-600">Monthly Loan EMI Cut (किस्त कटौती):</span>
+                <span className="text-stone-600">
+                  {isHi
+                    ? 'मासिक किस्त कटौती:'
+                    : isHinglish
+                    ? 'Mahine Ki Loan EMI Cut:'
+                    : 'Monthly Loan EMI Cut:'}
+                </span>
                 <span className="font-mono-num font-medium text-amber-700">
                   -₹{payload.activeEmiCut.toLocaleString('en-IN')}
                 </span>
@@ -161,7 +194,13 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
 
             {payload.reimbursementsThisMonth > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-stone-600">Home Reimbursement (घर का सामान खर्च):</span>
+                <span className="text-stone-600">
+                  {isHi
+                    ? 'घर के सामान का खर्च:'
+                    : isHinglish
+                    ? 'Ghar Saman Kharch (+Add):'
+                    : 'Home Reimbursement:'}
+                </span>
                 <span className="font-mono-num font-medium text-emerald-700">
                   +₹{payload.reimbursementsThisMonth.toLocaleString('en-IN')}
                 </span>
@@ -171,8 +210,13 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
 
           <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-stone-500">Exact Money Left to Give</p>
-              <p className="text-sm font-bold text-stone-900">बाकी पगार (Net Left to Pay)</p>
+              <p className="text-sm font-bold text-stone-900">
+                {isHi
+                  ? 'बाकी पगार (अब देना है)'
+                  : isHinglish
+                  ? 'Baki Pagar (Net Left to Pay)'
+                  : 'Net Money Left to Give'}
+              </p>
             </div>
             <span className="text-2xl font-mono-num font-bold text-emerald-700">
               ₹{payload.netPayableLeft.toLocaleString('en-IN')}
@@ -180,11 +224,11 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
           </div>
         </div>
 
-        {/* Spoken Hindi Audio Script Box */}
+        {/* Spoken Audio Script Box */}
         <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-amber-900">
-              Spoken Hindi Audio Script (hi-IN Voice Note)
+              {isHi ? 'वॉइस नोट स्क्रिप्ट' : 'Spoken Audio Script'}
             </span>
             {isSpeaking && (
               <span className="text-xs font-semibold text-emerald-700">Speaking Now...</span>
@@ -202,7 +246,13 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
             className="flex-1 px-4 py-3 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
           >
             <Volume2 className="w-4 h-4 text-amber-400" />
-            <span>Play Hindi Voice Note for Staff</span>
+            <span>
+              {isHi
+                ? 'स्टाफ को आवाज़ में सुनाएं'
+                : isHinglish
+                ? 'Staff Ko Audio Sunao'
+                : 'Play Voice Note for Staff'}
+            </span>
           </button>
 
           <a
@@ -212,7 +262,7 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
             className="flex-1 px-4 py-3 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap text-center"
           >
             <Share2 className="w-4 h-4" />
-            <span>Send on WhatsApp</span>
+            <span>{isHi ? 'व्हाट्सएप पर भेजें' : 'Send on WhatsApp'}</span>
           </a>
 
           <button
@@ -229,3 +279,4 @@ export const WhatsAppAudioSlipModal: React.FC<WhatsAppAudioSlipModalProps> = ({
     </div>
   );
 };
+

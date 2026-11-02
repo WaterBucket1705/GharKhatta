@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, Trash2, CheckCircle2 } from 'lucide-react';
+import { Trash2, CheckCircle2, UserPlus } from 'lucide-react';
 import {
   BadaUdhaarLoan,
   CashBucketType,
@@ -17,19 +17,12 @@ import {
   StaffMember,
 } from './types/khata';
 import {
-  INITIAL_CASH_LEDGER,
-  INITIAL_COLONY_SLOTS,
-  INITIAL_DHOBI_BATCHES,
-  INITIAL_LOANS,
-  INITIAL_MILK_CONFIG,
-  INITIAL_STAFF,
-} from './data/initialData';
-import {
   calculateDhobiBatchCost,
   calculateStaffFinancials,
 } from './utils/mathEngine';
 import {
   ActiveTab,
+  DEFAULT_FAMILY_MEMBERS,
   HeaderAndVoiceBar,
   TAB_TO_PATH,
   pathToTab,
@@ -42,7 +35,8 @@ import { StaffVaultColonyView } from './components/StaffVaultColonyView';
 import { WhatsAppAudioSlipModal } from './components/WhatsAppAudioSlipModal';
 import { OfflineIndicator } from './components/PWAInstallButton';
 
-const STORAGE_KEY = 'gharkhata_v1_state';
+const STORAGE_KEY = 'gharkhata_v2_clean_state';
+const LEGACY_DEMO_STORAGE_KEY = 'gharkhata_v1_state';
 
 interface StoredKhataState {
   staffList: StaffMember[];
@@ -53,29 +47,41 @@ interface StoredKhataState {
   colonySlots: ColonyFreeSlot[];
   language: Language;
   activeMember: FamilyMember;
+  familyMembers: FamilyMember[];
   selectedStaffId?: string;
   activeTab?: ActiveTab;
+  darkMode?: boolean;
 }
 
-function getFreshDemoDefaults(): StoredKhataState {
+function getCleanInitialState(): StoredKhataState {
   return {
-    staffList: structuredClone(INITIAL_STAFF),
-    cashLedger: structuredClone(INITIAL_CASH_LEDGER),
-    loans: structuredClone(INITIAL_LOANS),
-    dhobiBatches: structuredClone(INITIAL_DHOBI_BATCHES),
-    milkConfig: structuredClone(INITIAL_MILK_CONFIG),
-    colonySlots: structuredClone(INITIAL_COLONY_SLOTS),
+    staffList: [],
+    cashLedger: [],
+    loans: [],
+    dhobiBatches: [],
+    milkConfig: {
+      vendorName: 'Daily Milk & Water Supply',
+      milkType: 'Milk',
+      defaultDailyLiters: 0,
+      pricePerLiter: 70,
+      days: {},
+    },
+    colonySlots: [],
     language: 'en',
-    activeMember: 'Mummy (Priya)',
-    selectedStaffId: 'sunita',
+    activeMember: 'My Profile',
+    familyMembers: [...DEFAULT_FAMILY_MEMBERS],
+    selectedStaffId: '',
     activeTab: 'dashboard',
+    darkMode: false,
   };
 }
 
 function loadSavedState(): StoredKhataState {
-  const defaults = getFreshDemoDefaults();
+  const defaults = getCleanInitialState();
   if (typeof window === 'undefined') return defaults;
   try {
+    // Remove legacy demo localStorage if present
+    window.localStorage.removeItem(LEGACY_DEMO_STORAGE_KEY);
     const urlTab = pathToTab(window.location.pathname);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -102,8 +108,13 @@ function loadSavedState(): StoredKhataState {
         : defaults.colonySlots,
       language: parsed.language || defaults.language,
       activeMember: parsed.activeMember || defaults.activeMember,
+      familyMembers:
+        Array.isArray(parsed.familyMembers) && parsed.familyMembers.length > 0
+          ? parsed.familyMembers
+          : defaults.familyMembers,
       selectedStaffId: parsed.selectedStaffId || defaults.selectedStaffId,
       activeTab: resolvedTab,
+      darkMode: typeof parsed.darkMode === 'boolean' ? parsed.darkMode : false,
     };
   } catch {
     return defaults;
@@ -141,9 +152,19 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
   const [language, setLanguage] = useState<Language>(initial.language);
+  const [darkMode, setDarkMode] = useState<boolean>(Boolean(initial.darkMode));
   const [activeMember, setActiveMember] = useState<FamilyMember>(
     initial.activeMember
   );
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(
+    initial.familyMembers
+  );
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark-theme', darkMode);
+    }
+  }, [darkMode]);
 
   const [staffList, setStaffList] = useState<StaffMember[]>(initial.staffList);
   const [cashLedger, setCashLedger] = useState<CashLedgerEntry[]>(
@@ -159,7 +180,7 @@ export default function App() {
   );
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>(
-    initial.selectedStaffId || 'sunita'
+    initial.selectedStaffId || ''
   );
   const [receiptModalPayload, setReceiptModalPayload] =
     useState<ReceiptModalPayload | null>(null);
@@ -177,8 +198,10 @@ export default function App() {
         colonySlots,
         language,
         activeMember,
+        familyMembers,
         selectedStaffId,
         activeTab,
+        darkMode,
       };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
@@ -193,8 +216,10 @@ export default function App() {
     colonySlots,
     language,
     activeMember,
+    familyMembers,
     selectedStaffId,
     activeTab,
+    darkMode,
   ]);
 
   // Keep state synced if opened across Safari and standalone PWA windows
@@ -211,6 +236,8 @@ export default function App() {
           if (next.colonySlots) setColonySlots(next.colonySlots);
           if (next.language) setLanguage(next.language);
           if (next.activeMember) setActiveMember(next.activeMember);
+          if (next.familyMembers) setFamilyMembers(next.familyMembers);
+          if (typeof next.darkMode === 'boolean') setDarkMode(next.darkMode);
         } catch {
           // Ignore malformed storage events
         }
@@ -225,52 +252,58 @@ export default function App() {
     setTimeout(() => setBannerFeedback(null), 4500);
   };
 
-  // Full Reset to Fresh Demo Defaults
-  const handleResetDemoData = () => {
-    const fresh = getFreshDemoDefaults();
+  // Rename Own Profile / Active Family Member
+  const handleRenameActiveMember = (oldName: FamilyMember, newName: FamilyMember) => {
+    setFamilyMembers((prev) => {
+      const updated = prev.map((m) => (m === oldName ? newName : m));
+      return Array.from(new Set(updated));
+    });
+    setActiveMember(newName);
+    showToast(`Updated your display name to "${newName}"`);
+  };
+
+  // Add Family Member
+  const handleAddFamilyMember = (newName: FamilyMember) => {
+    setFamilyMembers((prev) =>
+      prev.includes(newName) ? prev : [...prev, newName]
+    );
+    setActiveMember(newName);
+    showToast(`Added "${newName}" and switched active profile`);
+  };
+
+  // Delete Family Member
+  const handleDeleteFamilyMember = (nameToDelete: FamilyMember) => {
+    setFamilyMembers((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((m) => m !== nameToDelete);
+      if (activeMember === nameToDelete && next.length > 0) {
+        setActiveMember(next[0]);
+      }
+      return next;
+    });
+    showToast(`Removed "${nameToDelete}" from family list`);
+  };
+
+  // Clear All Data to Blank Slate
+  const handleClearAllData = () => {
+    const clean = getCleanInitialState();
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
     } catch {
       // Ignore
     }
-    setStaffList(fresh.staffList);
-    setCashLedger(fresh.cashLedger);
-    setLoans(fresh.loans);
-    setDhobiBatches(fresh.dhobiBatches);
-    setMilkConfig(fresh.milkConfig);
-    setColonySlots(fresh.colonySlots);
-    setLanguage(fresh.language);
-    setActiveMember(fresh.activeMember);
-    setSelectedStaffId('sunita');
-    setActiveTab('dashboard');
-    setReceiptModalPayload(null);
-    setResetVersion((v) => v + 1);
-    showToast(
-      'Demo data reset! Restored all 4 household staff, udhaar ledgers, dhobi batches & milk calendar to initial November 2026 state.'
-    );
-  };
-
-  // Clear All Demo Data to Blank Slate (for starting fresh with user's own staff)
-  const handleClearAllDemoData = () => {
-    const emptyMilk: MilkConfig = {
-      vendorName: 'Daily Milk & Water Supply',
-      milkType: 'Buffalo / Cow Milk',
-      defaultDailyLiters: 2.0,
-      pricePerLiter: 70,
-      days: {},
-    };
     setStaffList([]);
     setCashLedger([]);
     setLoans([]);
     setDhobiBatches([]);
-    setMilkConfig(emptyMilk);
+    setMilkConfig(clean.milkConfig);
     setColonySlots([]);
     setSelectedStaffId('');
     setActiveTab('dashboard');
     setReceiptModalPayload(null);
     setResetVersion((v) => v + 1);
     showToast(
-      'Cleared all demo data! Your khata is now empty — tap "+ Add Unlimited Staff" to add your own household helpers.'
+      'Cleared all records! Your khata is now a clean sheet.'
     );
   };
 
@@ -280,6 +313,27 @@ export default function App() {
     showToast(
       `Added ${newStaff.name} (₹${newStaff.baseSalary.toLocaleString('en-IN')}/mo) to GharKhata (${activeMember})`
     );
+  };
+
+  const handleUpdateStaffMember = (updatedStaff: StaffMember) => {
+    setStaffList((prev) =>
+      prev.map((st) => (st.id === updatedStaff.id ? updatedStaff : st))
+    );
+    showToast(`Updated KYC & verification details for ${updatedStaff.name}`);
+  };
+
+  const handleDeleteStaffMember = (staffId: string) => {
+    const target = staffList.find((s) => s.id === staffId);
+    setStaffList((prev) => {
+      const remaining = prev.filter((s) => s.id !== staffId);
+      if (selectedStaffId === staffId) {
+        setSelectedStaffId(remaining[0]?.id || '');
+      }
+      return remaining;
+    });
+    if (target) {
+      showToast(`Deleted ${target.name} from GharKhata & KYC Vault`);
+    }
   };
 
   // Mark All Present Today
@@ -605,6 +659,20 @@ export default function App() {
     }));
   };
 
+  const handleUpdateMilkSettings = (
+    defaultDailyLiters: number,
+    pricePerLiter: number
+  ) => {
+    setMilkConfig((prev) => ({
+      ...prev,
+      defaultDailyLiters,
+      pricePerLiter,
+    }));
+    showToast(
+      `Updated daily milk default to ${defaultDailyLiters}L/day @ ₹${pricePerLiter}/L`
+    );
+  };
+
   // Colony Slot Handlers
   const handleToggleReserveSlot = (slotId: string) => {
     setColonySlots((prev) =>
@@ -617,6 +685,18 @@ export default function App() {
   const handleAddColonySlot = (slot: Omit<ColonyFreeSlot, 'id'>) => {
     setColonySlots((prev) => [{ ...slot, id: `slot-${Date.now()}` }, ...prev]);
     showToast(`Published ${slot.workerName}'s open time slot to the Colony Board`);
+  };
+
+  const handleUpdateColonySlot = (updatedSlot: ColonyFreeSlot) => {
+    setColonySlots((prev) =>
+      prev.map((s) => (s.id === updatedSlot.id ? updatedSlot : s))
+    );
+    showToast(`Updated Colony Board slot for ${updatedSlot.workerName}`);
+  };
+
+  const handleDeleteColonySlot = (slotId: string) => {
+    setColonySlots((prev) => prev.filter((s) => s.id !== slotId));
+    showToast('Removed slot listing from the Colony Board');
   };
 
   // Apply AI Parsed Hinglish Voice/Text Command to Live Khata State
@@ -654,12 +734,65 @@ export default function App() {
     }
 
     // Staff Ledger / Attendance Action
-    const targetStaffId = cmd.workerId || 'sunita';
-    const targetStaff =
-      staffList.find((s) => s.id === targetStaffId) || staffList[0];
-    if (!targetStaff) return;
-
     let nextStaffList = [...staffList];
+    const targetStaffId = cmd.workerId || '';
+    let targetStaff =
+      nextStaffList.find(
+        (s) =>
+          s.id === targetStaffId ||
+          s.name.toLowerCase().includes((cmd.workerName || '').toLowerCase())
+      ) || nextStaffList[0];
+
+    // If starting from a clean sheet with no staff yet, auto-create the staff profile
+    if (!targetStaff) {
+      const workerName = cmd.workerName?.trim() || 'Household Helper';
+      targetStaff = {
+        id: `staff-${Date.now()}`,
+        name: workerName,
+        nameHi: workerName,
+        role: 'Household Staff',
+        roleHi: 'Household Staff',
+        phone: '',
+        modelType:
+          cmd.actionType === 'hours_and_reimbursement'
+            ? 'hourly_visit'
+            : 'fixed_monthly',
+        baseSalary: 5000,
+        paidLeaveQuota: 2,
+        zeroLeaveBonusEnabled: true,
+        zeroLeaveBonusAmount: 200,
+        standardVisitHours: 3,
+        hourlyOvertimeRate: 120,
+        tasks: [
+          {
+            id: 'task-1',
+            labelEn: 'Morning Primary Duty',
+            labelHi: 'Morning Primary Duty',
+            skipPenalty: 50,
+          },
+          {
+            id: 'task-2',
+            labelEn: 'Evening Duty',
+            labelHi: 'Evening Duty',
+            skipPenalty: 50,
+          },
+        ],
+        attendance: {},
+        kyc: {
+          maskedAadhaar: 'Not Added Yet',
+          homeVillage: 'Not Added Yet',
+          emergencyContact: 'Not Added Yet',
+          policeVerified: false,
+          policeVerificationId: 'PENDING-VERIFICATION',
+          neighborReference: `Added by ${activeMember}`,
+          upiId: `${workerName.toLowerCase().replace(/[^a-z0-9]/g, '')}@upi`,
+          joinedSince: 'November 2026',
+        },
+      };
+      nextStaffList = [targetStaff];
+      setSelectedStaffId(targetStaff.id);
+    }
+
     let nextCashLedger = [...cashLedger];
 
     if (cmd.actionType === 'absent_and_advance') {
@@ -840,7 +973,11 @@ export default function App() {
   };
 
   return (
-    <div id="top" className="min-h-screen flex flex-col bg-[#FAF8F5] text-stone-900 pb-20 lg:pb-10">
+    <div
+      id="top"
+      data-theme={darkMode ? 'dark' : 'light'}
+      className="min-h-screen flex flex-col bg-[#FAF8F5] text-stone-900 pb-20 lg:pb-10 transition-colors"
+    >
       <HeaderAndVoiceBar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -848,9 +985,14 @@ export default function App() {
         setLanguage={setLanguage}
         activeMember={activeMember}
         setActiveMember={setActiveMember}
+        familyMembers={familyMembers}
+        onRenameActiveMember={handleRenameActiveMember}
+        onAddFamilyMember={handleAddFamilyMember}
+        onDeleteFamilyMember={handleDeleteFamilyMember}
         onApplyParsedCommand={handleApplyParsedCommand}
-        onResetDemoData={handleResetDemoData}
         currentDay={currentDay}
+        darkMode={darkMode}
+        onToggleDarkMode={() => setDarkMode((prev) => !prev)}
       />
 
       {bannerFeedback && (
@@ -899,43 +1041,80 @@ export default function App() {
             onOpenReceiptModal={setReceiptModalPayload}
             onNavigateTab={setActiveTab}
             onAddNewStaff={handleAddNewStaff}
-            onResetDemoData={handleResetDemoData}
           />
         )}
 
-        {activeTab === 'calendar' && staffList.length > 0 && (
-          <AttendanceCalendarView
-            staffList={staffList}
-            selectedStaffId={selectedStaffId}
-            onSelectStaffId={setSelectedStaffId}
-            cashLedger={cashLedger}
-            loans={loans}
-            activeMember={activeMember}
-            currentDay={currentDay}
-            onUpdateDayAttendance={handleUpdateDayAttendance}
-            onToggleZeroLeaveBonus={handleToggleZeroLeaveBonus}
-            onAddGardenChecklistItem={handleAddGardenChecklistItem}
-            onToggleGardenChecklistItem={handleToggleGardenChecklistItem}
-            onOpenReceiptModal={setReceiptModalPayload}
-          />
-        )}
+        {activeTab === 'calendar' &&
+          (staffList.length > 0 ? (
+            <AttendanceCalendarView
+              staffList={staffList}
+              selectedStaffId={selectedStaffId}
+              onSelectStaffId={setSelectedStaffId}
+              cashLedger={cashLedger}
+              loans={loans}
+              language={language}
+              activeMember={activeMember}
+              currentDay={currentDay}
+              onUpdateDayAttendance={handleUpdateDayAttendance}
+              onToggleZeroLeaveBonus={handleToggleZeroLeaveBonus}
+              onAddGardenChecklistItem={handleAddGardenChecklistItem}
+              onToggleGardenChecklistItem={handleToggleGardenChecklistItem}
+              onOpenReceiptModal={setReceiptModalPayload}
+            />
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-3">
+              <h2 className="text-base font-bold text-stone-900">
+                No Household Staff Added Yet
+              </h2>
+              <p className="text-xs text-stone-500 max-w-md mx-auto">
+                Add your first household staff member on the Home Dashboard or ID Vault to manage their 30-day attendance calendar and paid leave quota.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 inline-flex items-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Go to Home Dashboard to Add Staff</span>
+              </button>
+            </div>
+          ))}
 
-        {activeTab === 'udhaar' && staffList.length > 0 && (
-          <UdhaarLoansView
-            staffList={staffList}
-            selectedStaffId={selectedStaffId}
-            onSelectStaffId={setSelectedStaffId}
-            cashLedger={cashLedger}
-            loans={loans}
-            activeMember={activeMember}
-            currentDay={currentDay}
-            onAddCashEntry={handleAddCashEntry}
-            onCreateBadaLoan={handleCreateBadaLoan}
-            onTogglePauseLoanEmi={handleTogglePauseLoanEmi}
-            onSettleStaffMonth={handleSettleStaffMonth}
-            onOpenReceiptModal={setReceiptModalPayload}
-          />
-        )}
+        {activeTab === 'udhaar' &&
+          (staffList.length > 0 ? (
+            <UdhaarLoansView
+              staffList={staffList}
+              selectedStaffId={selectedStaffId}
+              onSelectStaffId={setSelectedStaffId}
+              cashLedger={cashLedger}
+              loans={loans}
+              language={language}
+              activeMember={activeMember}
+              currentDay={currentDay}
+              onAddCashEntry={handleAddCashEntry}
+              onCreateBadaLoan={handleCreateBadaLoan}
+              onTogglePauseLoanEmi={handleTogglePauseLoanEmi}
+              onSettleStaffMonth={handleSettleStaffMonth}
+              onOpenReceiptModal={setReceiptModalPayload}
+            />
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-3">
+              <h2 className="text-base font-bold text-stone-900">
+                No Household Staff Added Yet
+              </h2>
+              <p className="text-xs text-stone-500 max-w-md mx-auto">
+                Add your first household staff member on the Home Dashboard or ID Vault to log cash advances, multi-month loans, or reimbursements.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 inline-flex items-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Go to Home Dashboard to Add Staff</span>
+              </button>
+            </div>
+          ))}
 
         {activeTab === 'dhobi_milk' && (
           <DhobiMilkView
@@ -946,6 +1125,7 @@ export default function App() {
             onAddDhobiBatch={handleAddDhobiBatch}
             onUpdateDhobiBatchReturn={handleUpdateDhobiBatchReturn}
             onUpdateMilkDay={handleUpdateMilkDay}
+            onUpdateMilkSettings={handleUpdateMilkSettings}
           />
         )}
 
@@ -953,8 +1133,15 @@ export default function App() {
           <StaffVaultColonyView
             staffList={staffList}
             colonySlots={colonySlots}
+            language={language}
+            activeMember={activeMember}
+            onAddNewStaff={handleAddNewStaff}
+            onUpdateStaffMember={handleUpdateStaffMember}
+            onDeleteStaffMember={handleDeleteStaffMember}
             onToggleReserveSlot={handleToggleReserveSlot}
             onAddColonySlot={handleAddColonySlot}
+            onUpdateColonySlot={handleUpdateColonySlot}
+            onDeleteColonySlot={handleDeleteColonySlot}
           />
         )}
       </main>
@@ -966,19 +1153,11 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={handleResetDemoData}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-200/80 hover:bg-stone-300 text-stone-800 transition-colors flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo Data (Restore Defaults)</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleClearAllDemoData}
+            onClick={handleClearAllData}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors flex items-center gap-1.5"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear All Demo Data (Start Empty)</span>
+            <span>Clear All Data (Start Fresh)</span>
           </button>
         </div>
       </footer>
@@ -987,6 +1166,7 @@ export default function App() {
 
       <WhatsAppAudioSlipModal
         payload={receiptModalPayload}
+        language={language}
         onClose={() => setReceiptModalPayload(null)}
       />
     </div>

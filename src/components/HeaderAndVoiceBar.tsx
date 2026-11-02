@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Mic,
-  MicOff,
+  Keyboard,
   Sparkles,
   Check,
   X,
@@ -10,18 +9,19 @@ import {
   Shirt,
   ShieldCheck,
   Home,
-  ArrowRight,
   UserCheck,
   Globe,
-  ChevronDown,
-  ChevronUp,
+  Pencil,
+  Plus,
+  Trash2,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import {
   FamilyMember,
   Language,
   ParsedHinglishCommand,
 } from '../types/khata';
-import { HINGLISH_DEMO_CHIPS } from '../data/initialData';
 import { UI_TEXT } from '../i18n/translations';
 import { parseHinglishCommandLocal } from '../utils/mathEngine';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -55,6 +55,8 @@ export function pathToTab(pathname: string): ActiveTab | null {
   }
 }
 
+export const DEFAULT_FAMILY_MEMBERS: FamilyMember[] = ['My Profile'];
+
 interface HeaderAndVoiceBarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
@@ -62,12 +64,15 @@ interface HeaderAndVoiceBarProps {
   setLanguage: (lang: Language) => void;
   activeMember: FamilyMember;
   setActiveMember: (member: FamilyMember) => void;
+  familyMembers: FamilyMember[];
+  onRenameActiveMember: (oldName: FamilyMember, newName: FamilyMember) => void;
+  onAddFamilyMember: (newName: FamilyMember) => void;
+  onDeleteFamilyMember: (nameToDelete: FamilyMember) => void;
   onApplyParsedCommand: (cmd: ParsedHinglishCommand) => void;
-  onResetDemoData: () => void;
   currentDay: number;
+  darkMode: boolean;
+  onToggleDarkMode: () => void;
 }
-
-const FAMILY_MEMBERS: FamilyMember[] = ['Mummy (Priya)', 'Papa (Anurag)', 'Dadi'];
 
 export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
   activeTab,
@@ -76,25 +81,64 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
   setLanguage,
   activeMember,
   setActiveMember,
+  familyMembers,
+  onRenameActiveMember,
+  onAddFamilyMember,
+  onDeleteFamilyMember,
   onApplyParsedCommand,
-  onResetDemoData,
   currentDay,
+  darkMode,
+  onToggleDarkMode,
 }) => {
   const t = UI_TEXT[language];
   const [commandInput, setCommandInput] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [previewCommand, setPreviewCommand] = useState<ParsedHinglishCommand | null>(null);
   const [parserEngineLabel, setParserEngineLabel] = useState<string>('');
-  const [voiceStatusMsg, setVoiceStatusMsg] = useState<string>('');
-  const [showDemoChips, setShowDemoChips] = useState(false);
+
+  // Edit Own Name & Family Members Modal State
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [renameInput, setRenameInput] = useState(activeMember);
+  const [newMemberInput, setNewMemberInput] = useState('');
+  const [nameError, setNameError] = useState('');
+
+  const openEditNameModal = () => {
+    setRenameInput(activeMember);
+    setNewMemberInput('');
+    setNameError('');
+    setShowNameModal(true);
+  };
+
+  const handleSaveOwnName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = renameInput.trim();
+    if (!trimmed) {
+      setNameError('Please enter a valid name.');
+      return;
+    }
+    setNameError('');
+    onRenameActiveMember(activeMember, trimmed);
+    setShowNameModal(false);
+  };
+
+  const handleAddMemberSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newMemberInput.trim();
+    if (!trimmed) {
+      setNameError('Please enter a name to add.');
+      return;
+    }
+    setNameError('');
+    onAddFamilyMember(trimmed);
+    setRenameInput(trimmed);
+    setNewMemberInput('');
+  };
 
   const handleParseText = async (textToParse: string) => {
     const trimmed = textToParse.trim();
     if (!trimmed) return;
     setCommandInput(trimmed);
     setIsParsing(true);
-    setVoiceStatusMsg('');
 
     try {
       const response = await fetch('/api/parse-hinglish', {
@@ -107,79 +151,20 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
         setPreviewCommand(data.parsed);
         setParserEngineLabel(
           data.engine === 'gemini-4-argon-high-thinking'
-            ? 'Parsed via Gemini High-Thinking Ledger Engine'
-            : 'Parsed via Instant Hinglish Ledger Engine'
+            ? 'Understood via Gemini High-Thinking Ledger Engine'
+            : 'Understood via Instant Hinglish Ledger Engine'
         );
       } else {
         const local = parseHinglishCommandLocal(trimmed, currentDay);
         setPreviewCommand(local);
-        setParserEngineLabel('Parsed via Instant Hinglish Ledger Engine');
+        setParserEngineLabel('Understood via Instant Hinglish Ledger Engine');
       }
     } catch {
       const local = parseHinglishCommandLocal(trimmed, currentDay);
       setPreviewCommand(local);
-      setParserEngineLabel('Parsed via Instant Hinglish Ledger Engine');
+      setParserEngineLabel('Understood via Instant Hinglish Ledger Engine');
     } finally {
       setIsParsing(false);
-    }
-  };
-
-  const handleToggleMic = () => {
-    const SpeechRecognitionAPI =
-      (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
-        .SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
-
-    if (!SpeechRecognitionAPI) {
-      setShowDemoChips(true);
-      const sample = HINGLISH_DEMO_CHIPS[0].text;
-      setVoiceStatusMsg('Browser mic unavailable in sandbox — loaded voice sample:');
-      handleParseText(sample);
-      return;
-    }
-
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const recognition = new (SpeechRecognitionAPI as any)();
-      recognition.lang = 'hi-IN';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setVoiceStatusMsg('Listening in Hindi / Hinglish... Speak now');
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        const transcript = event.results?.[0]?.[0]?.transcript || '';
-        setIsListening(false);
-        if (transcript) {
-          setVoiceStatusMsg(`Heard: "${transcript}"`);
-          handleParseText(transcript);
-        }
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-        setShowDemoChips(true);
-        setVoiceStatusMsg('Mic permission declined — tap any 1-click Demo Voice Chip below');
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-    } catch {
-      setIsListening(false);
-      setShowDemoChips(true);
-      handleParseText(HINGLISH_DEMO_CHIPS[0].text);
     }
   };
 
@@ -188,7 +173,6 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
     onApplyParsedCommand(previewCommand);
     setPreviewCommand(null);
     setCommandInput('');
-    setShowDemoChips(false);
   };
 
   const navItems: {
@@ -249,27 +233,25 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
             <button
               type="button"
               onClick={() => {
-                setShowDemoChips((prev) => !prev);
                 const inputEl = document.getElementById('bol-ke-likho-input');
                 if (inputEl) inputEl.focus();
-                handleToggleMic();
               }}
               className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 rounded-lg hover:bg-emerald-800 transition-colors whitespace-nowrap shrink-0 flex items-center gap-2 min-h-[38px]"
             >
-              <Mic className="w-3.5 h-3.5" />
+              <Keyboard className="w-3.5 h-3.5" />
               <span>Bol Ke Likho</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Global Family Sync & Language Switcher + Compact "Bol Ke Likho" Voice Command Bar */}
+      {/* Global Family Sync & Language Switcher + Compact "Bol Ke Likho" Keyboard Dictation Bar */}
       <section
-        aria-label="Family Sync, Language, and Voice Command Bar"
+        aria-label="Family Sync, Language, and Quick Text Entry Bar"
         className="bg-white border-b border-stone-200"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 space-y-2.5">
-          {/* Row 1: Family Member Sync Switcher + Language Switcher + Info Tooltip */}
+          {/* Row 1: Family Member Sync Switcher + Edit My Name + Language Switcher */}
           <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-100">
             <div className="flex flex-wrap items-center gap-2">
               <label
@@ -287,33 +269,56 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
                 onChange={(e) => setActiveMember(e.target.value as FamilyMember)}
                 className="px-3 py-1.5 min-h-[36px] text-xs font-semibold bg-[#FAF8F5] border border-stone-300 rounded-lg text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
               >
-                {FAMILY_MEMBERS.map((member) => (
+                {familyMembers.map((member) => (
                   <option key={member} value={member}>
                     {member}
                   </option>
                 ))}
               </select>
 
+              <button
+                type="button"
+                onClick={openEditNameModal}
+                aria-label="Edit My Name or Manage Family Members"
+                className="px-2.5 py-1.5 min-h-[34px] rounded-lg bg-[#FAF8F5] hover:bg-emerald-50 border border-stone-300 hover:border-emerald-300 text-stone-700 hover:text-emerald-800 text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
+              >
+                <Pencil className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Edit My Name</span>
+              </button>
+
               <InfoPopupButton
                 title="Family Member Audit & Sync"
                 subtitle="Prevent Double-Borrowing"
                 description="Every attendance mark, cash advance, reimbursement, or dhobi entry automatically stamps which family member recorded it and at what time."
                 bullets={[
-                  'Prevents staff from taking ₹500 from Mummy in the morning and ₹500 from Papa in the evening without the household knowing.',
-                  'All entries are automatically saved to your device storage (LocalStorage) for instant offline access.',
+                  'Tap "Edit My Name" to customize your own name or add/remove family members.',
+                  'Prevents staff from borrowing cash from two family members in the same week without the household knowing.',
                 ]}
               />
             </div>
 
-            {/* Language Switcher + PWA Install Button + Reset Demo Data */}
+            {/* Dark Mode Toggle + Language Switcher + PWA Install Button */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={onResetDemoData}
-                className="px-3 py-1.5 min-h-[34px] rounded-lg bg-[#FAF8F5] hover:bg-rose-50 border border-stone-300 hover:border-rose-300 text-stone-700 hover:text-rose-800 text-xs font-semibold transition-colors whitespace-nowrap shrink-0"
+                onClick={onToggleDarkMode}
+                aria-label="Toggle Dark Mode"
+                aria-pressed={darkMode}
+                className="px-3 py-1.5 min-h-[34px] rounded-lg bg-[#FAF8F5] hover:bg-stone-100 border border-stone-300 text-stone-700 text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
               >
-                Reset Demo Data
+                {darkMode ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
               </button>
+
               <PWAInstallButton />
               <div className="flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-stone-400" />
@@ -347,7 +352,7 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Compact "Bol Ke Likho" Voice & Text Parser + Toggleable Demo Chips */}
+          {/* Row 2: Keyboard Dictation Recommendation + Smart Hinglish/Hindi Text Parser */}
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="relative flex-1">
@@ -383,67 +388,36 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
-                  onClick={handleToggleMic}
-                  aria-label="Record Hinglish Voice Command"
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 min-h-[38px] ${
-                    isListening
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-stone-100 text-stone-800 hover:bg-stone-200 border border-stone-300'
-                  }`}
-                >
-                  {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5 text-emerald-700" />}
-                  <span>{isListening ? 'Stop' : 'Mic'}</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => handleParseText(commandInput)}
                   disabled={!commandInput.trim() || isParsing}
                   className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-50 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 min-h-[38px]"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isParsing ? 'Parsing...' : 'Parse Entry'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDemoChips((prev) => !prev)}
-                  aria-expanded={showDemoChips}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#FAF8F5] hover:bg-stone-100 text-stone-700 border border-stone-300 transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 min-h-[38px]"
-                >
-                  <span>Voice Examples</span>
-                  {showDemoChips ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-stone-500" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-stone-500" />
-                  )}
+                  <span>{isParsing ? 'Understanding...' : 'Understand & Log Text'}</span>
                 </button>
               </div>
             </div>
 
-            {voiceStatusMsg && (
-              <p className="text-xs text-emerald-800 font-medium">{voiceStatusMsg}</p>
-            )}
-
-            {/* Toggleable 5 Realistic 1-Tap Hinglish Demo Voice Chips */}
-            {showDemoChips && (
-              <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-[#FAF8F5] border border-stone-200">
-                <span className="text-xs font-semibold text-stone-500 whitespace-nowrap shrink-0 mr-1">
-                  Tap a sample Hinglish voice command:
+            {/* Keyboard Mic Recommendation Strip */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600 px-1">
+              <p className="flex items-center gap-1.5">
+                <Keyboard className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>
+                  <strong className="font-semibold text-stone-800">Tip:</strong> Tap the text box above and use the{' '}
+                  <strong className="font-semibold text-emerald-800">Mic icon on your phone keyboard</strong> to speak in Hindi, Hinglish, or English — GharKhata will automatically understand the text!
                 </span>
-                {HINGLISH_DEMO_CHIPS.map((chip) => (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => handleParseText(chip.text)}
-                    className="px-3 py-1.5 text-xs font-medium bg-white hover:bg-emerald-50 hover:border-emerald-600 text-stone-700 hover:text-emerald-900 border border-stone-200 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5"
-                  >
-                    <span>"{chip.label}"</span>
-                    <ArrowRight className="w-3 h-3 text-stone-400" />
-                  </button>
-                ))}
-              </div>
-            )}
+              </p>
+              <InfoPopupButton
+                title="How to Speak Using Your Keyboard Mic"
+                subtitle="Works on iPhone & Android Without App Permissions"
+                description="Instead of a browser microphone, use your phone keyboard's built-in voice dictation for instant, accurate Hindi, Hinglish, and English speech-to-text:"
+                bullets={[
+                  '1. Tap inside the "Bol Ke Likho" text box above so your phone keyboard opens.',
+                  '2. Tap the Microphone icon on your keyboard (bottom-right on iPhone or top-right on Android Gboard) and speak naturally.',
+                  '3. Tap "Understand & Log Text" (or press Enter) — GharKhata automatically extracts the staff name, attendance, advance amount, or dhobi/milk update.',
+                ]}
+              />
+            </div>
 
             {/* Confirmation Preview Card */}
             {previewCommand && (
@@ -466,12 +440,11 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
                       </>
                     )}
                   </div>
-                  <p className="text-sm font-bold text-stone-900">{previewCommand.summaryEn}</p>
-                  <p className="text-xs text-stone-700">
-                    {previewCommand.summaryHi} ·{' '}
-                    <span className="font-mono-num font-semibold text-emerald-800">
-                      {previewCommand.salaryImpactText}
-                    </span>
+                  <p className="text-sm font-bold text-stone-900">
+                    {language === 'hi' ? previewCommand.summaryHi : previewCommand.summaryEn}
+                  </p>
+                  <p className="text-xs font-mono-num font-semibold text-emerald-800">
+                    {previewCommand.salaryImpactText}
                   </p>
                 </div>
 
@@ -497,6 +470,146 @@ export const HeaderAndVoiceBar: React.FC<HeaderAndVoiceBarProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Edit Own Name & Manage Family Members Modal */}
+      {showNameModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-own-name-title"
+          onClick={() => setShowNameModal(false)}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-stone-200 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-xl"
+          >
+            <div className="flex items-start justify-between border-b border-stone-100 pb-3">
+              <div>
+                <p className="text-xs font-semibold text-emerald-700">
+                  Profile & Family Sync Settings
+                </p>
+                <h3 id="edit-own-name-title" className="text-lg font-bold text-stone-900">
+                  Change Your Name & Family Profiles
+                </h3>
+              </div>
+              <button
+                type="button"
+                aria-label="Close Name Settings Modal"
+                onClick={() => setShowNameModal(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 1. Rename Current Active User */}
+            <form onSubmit={handleSaveOwnName} className="space-y-3">
+              <label
+                htmlFor="rename-own-name-input"
+                className="text-xs font-semibold text-stone-700 block"
+              >
+                Your Active Display Name (Currently: {activeMember})
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="rename-own-name-input"
+                  type="text"
+                  value={renameInput}
+                  onChange={(e) => setRenameInput(e.target.value)}
+                  placeholder="e.g. Aditi Sharma / Mummy (Priya)"
+                  className="flex-1 px-3.5 py-2.5 text-sm bg-[#FAF8F5] border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 whitespace-nowrap shrink-0"
+                >
+                  Save My Name
+                </button>
+              </div>
+            </form>
+
+            {/* 2. Manage Household Family Members List */}
+            <div className="space-y-2.5 pt-3 border-t border-stone-100">
+              <span className="text-xs font-semibold text-stone-700 block">
+                Household Family Members ({familyMembers.length})
+              </span>
+
+              <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                {familyMembers.map((member) => {
+                  const isCurrent = member === activeMember;
+                  return (
+                    <div
+                      key={member}
+                      className="p-2.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveMember(member);
+                          setRenameInput(member);
+                        }}
+                        className="font-semibold text-stone-900 hover:text-emerald-800 text-left flex items-center gap-2"
+                      >
+                        <span>{member}</span>
+                        {isCurrent && (
+                          <span className="text-[11px] font-medium text-emerald-700">
+                            (Active)
+                          </span>
+                        )}
+                      </button>
+
+                      {familyMembers.length > 1 && (
+                        <button
+                          type="button"
+                          aria-label={`Delete family member ${member}`}
+                          onClick={() => onDeleteFamilyMember(member)}
+                          className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add New Family Member */}
+              <form onSubmit={handleAddMemberSubmit} className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  aria-label="New Family Member Name"
+                  value={newMemberInput}
+                  onChange={(e) => setNewMemberInput(e.target.value)}
+                  placeholder="Add another family member (e.g. Rohan / Nani)"
+                  className="flex-1 px-3.5 py-2 text-xs bg-[#FAF8F5] border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
+                <button
+                  type="submit"
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 flex items-center gap-1 whitespace-nowrap shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Member</span>
+                </button>
+              </form>
+            </div>
+
+            {nameError && (
+              <p className="text-xs text-rose-600 font-semibold">{nameError}</p>
+            )}
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setShowNameModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-stone-100 text-stone-700 hover:bg-stone-200"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation Bar (Multi-Page Router Tabs) */}
       <nav

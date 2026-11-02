@@ -14,6 +14,7 @@ import {
   CashBucketType,
   CashLedgerEntry,
   FamilyMember,
+  Language,
   ReceiptModalPayload,
   StaffMember,
 } from '../types/khata';
@@ -29,6 +30,7 @@ interface UdhaarLoansViewProps {
   onSelectStaffId: (id: string) => void;
   cashLedger: CashLedgerEntry[];
   loans: BadaUdhaarLoan[];
+  language: Language;
   activeMember: FamilyMember;
   currentDay: number;
   onAddCashEntry: (
@@ -54,6 +56,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
   onSelectStaffId,
   cashLedger,
   loans,
+  language,
   activeMember,
   currentDay,
   onAddCashEntry,
@@ -66,9 +69,9 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
     'all' | 'chhota_advance' | 'bada_udhaar_loan' | 'reimbursement'
   >('all');
   const [entryBucket, setEntryBucket] = useState<CashBucketType>('chhota_advance');
-  const [amountInput, setAmountInput] = useState<string>('1200');
-  const [reasonInput, setReasonInput] = useState<string>('Gas cylinder & rashan cash');
-  const [emiInput, setEmiInput] = useState<string>('1000');
+  const [amountInput, setAmountInput] = useState<string>('');
+  const [reasonInput, setReasonInput] = useState<string>('');
+  const [emiInput, setEmiInput] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
   const [settlementStaffId, setSettlementStaffId] = useState<string | null>(null);
 
@@ -103,6 +106,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
 
     setAmountInput('');
     setReasonInput('');
+    setEmiInput('');
   };
 
   const handleConvertExcessToThreeMonthLoan = () => {
@@ -172,7 +176,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                   : 'bg-[#FAF8F5] text-stone-700 hover:bg-stone-200 border border-stone-200'
               }`}
             >
-              {s.name}
+              {language === 'hi' ? s.nameHi : s.name}
             </button>
           ))}
         </div>
@@ -185,7 +189,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
           <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
             <div>
               <span className="text-xs font-medium text-stone-500">
-                {selectedStaff.name} · By {activeMember}
+                {language === 'hi' ? selectedStaff.nameHi : selectedStaff.name} · By {activeMember}
               </span>
               <h3 className="text-base sm:text-lg font-bold text-stone-900">
                 Log Advance, Loan or Reimbursement
@@ -212,8 +216,6 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               type="button"
               onClick={() => {
                 setEntryBucket('chhota_advance');
-                setAmountInput('1200');
-                setReasonInput('Gas cylinder refill cash');
               }}
               className={`p-3 rounded-xl border text-left transition-colors ${
                 entryBucket === 'chhota_advance'
@@ -229,9 +231,6 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               type="button"
               onClick={() => {
                 setEntryBucket('bada_udhaar_loan');
-                setAmountInput('6000');
-                setEmiInput('1000');
-                setReasonInput('School admission interest-free loan');
               }}
               className={`p-3 rounded-xl border text-left transition-colors ${
                 entryBucket === 'bada_udhaar_loan'
@@ -247,8 +246,6 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               type="button"
               onClick={() => {
                 setEntryBucket('reimbursement');
-                setAmountInput('350');
-                setReasonInput('Bought vermicompost & pots from pocket');
               }}
               className={`p-3 rounded-xl border text-left transition-colors ${
                 entryBucket === 'reimbursement'
@@ -429,92 +426,98 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              {loans.map((loan) => {
-                const staffMember = staffList.find((s) => s.id === loan.staffId);
-                const paidSoFar = Math.max(0, loan.totalPrincipal - loan.balanceRemaining);
-                const pctPaid = Math.min(
-                  100,
-                  Math.round((paidSoFar / Math.max(1, loan.totalPrincipal)) * 100)
-                );
-                const monthsLeft = Math.ceil(
-                  loan.balanceRemaining / Math.max(1, loan.monthlyEmi)
-                );
+              {loans.length === 0 ? (
+                <div className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 text-xs text-stone-500">
+                  No multi-month Bada Udhaar loans active yet. Select "2. Bada Udhaar" on the left to log a multi-month interest-free loan.
+                </div>
+              ) : (
+                loans.map((loan) => {
+                  const staffMember = staffList.find((s) => s.id === loan.staffId);
+                  const paidSoFar = Math.max(0, loan.totalPrincipal - loan.balanceRemaining);
+                  const pctPaid = Math.min(
+                    100,
+                    Math.round((paidSoFar / Math.max(1, loan.totalPrincipal)) * 100)
+                  );
+                  const monthsLeft = Math.ceil(
+                    loan.balanceRemaining / Math.max(1, loan.monthlyEmi)
+                  );
 
-                return (
-                  <div
-                    key={loan.id}
-                    className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-bold text-stone-900">
-                          {staffMember?.name || loan.staffId} — {loan.purpose}
-                        </p>
-                        <p className="text-xs text-stone-500">
-                          Started {loan.startDate} · {loan.loggedBy}
-                        </p>
+                  return (
+                    <div
+                      key={loan.id}
+                      className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-stone-900">
+                            {staffMember?.name || loan.staffId} — {loan.purpose}
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            Started {loan.startDate} · {loan.loggedBy}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onTogglePauseLoanEmi(loan.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                            loan.pausedThisMonth
+                              ? 'bg-amber-100 border-amber-400 text-amber-900'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
+                          }`}
+                        >
+                          {loan.pausedThisMonth ? (
+                            <>
+                              <PlayCircle className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Festival Pause (₹0 Cut) · Resume</span>
+                            </>
+                          ) : (
+                            <>
+                              <PauseCircle className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Pause EMI 1 Month</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onTogglePauseLoanEmi(loan.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                          loan.pausedThisMonth
-                            ? 'bg-amber-100 border-amber-400 text-amber-900'
-                            : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
-                        }`}
-                      >
-                        {loan.pausedThisMonth ? (
-                          <>
-                            <PlayCircle className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>Festival Pause (₹0 Cut) · Resume</span>
-                          </>
-                        ) : (
-                          <>
-                            <PauseCircle className="w-3.5 h-3.5 text-amber-700" />
-                            <span>Pause EMI 1 Month</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
 
-                    <div className="grid grid-cols-4 gap-2 text-xs">
-                      <div>
-                        <span className="text-stone-500 block">Principal</span>
-                        <span className="font-mono-num font-bold text-stone-900">
-                          ₹{loan.totalPrincipal.toLocaleString('en-IN')}
-                        </span>
+                      <div className="grid grid-cols-4 gap-2 text-xs">
+                        <div>
+                          <span className="text-stone-500 block">Principal</span>
+                          <span className="font-mono-num font-bold text-stone-900">
+                            ₹{loan.totalPrincipal.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 block">Monthly EMI</span>
+                          <span className="font-mono-num font-bold text-amber-700">
+                            {loan.pausedThisMonth
+                              ? '₹0 (Paused)'
+                              : `-₹${loan.monthlyEmi.toLocaleString('en-IN')}/mo`}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 block">Balance Left</span>
+                          <span className="font-mono-num font-bold text-stone-900">
+                            ₹{loan.balanceRemaining.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 block">Months Left</span>
+                          <span className="font-mono-num font-bold text-emerald-700">
+                            {monthsLeft} mos
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-stone-500 block">Monthly EMI</span>
-                        <span className="font-mono-num font-bold text-amber-700">
-                          {loan.pausedThisMonth
-                            ? '₹0 (Paused)'
-                            : `-₹${loan.monthlyEmi.toLocaleString('en-IN')}/mo`}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-stone-500 block">Balance Left</span>
-                        <span className="font-mono-num font-bold text-stone-900">
-                          ₹{loan.balanceRemaining.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-stone-500 block">Months Left</span>
-                        <span className="font-mono-num font-bold text-emerald-700">
-                          {monthsLeft} mos
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-700 rounded-full transition-all"
-                        style={{ width: `${pctPaid}%` }}
-                      />
+                      <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-700 rounded-full transition-all"
+                          style={{ width: `${pctPaid}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -606,88 +609,94 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-stone-200 text-stone-500">
-                <th className="py-2.5 px-3 font-semibold">Date</th>
-                <th className="py-2.5 px-3 font-semibold">Staff Member</th>
-                <th className="py-2.5 px-3 font-semibold">Bucket Type</th>
-                <th className="py-2.5 px-3 font-semibold">Reason / Item</th>
-                <th className="py-2.5 px-3 font-semibold">Audit Trail</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Salary Impact</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Slip</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {filteredLedger.map((entry) => {
-                const st = staffList.find((s) => s.id === entry.staffId) || staffList[0];
-                const stFin = calculateStaffFinancials(st, cashLedger, loans, currentDay);
-                const isAdd = entry.bucket === 'reimbursement';
-                return (
-                  <tr key={entry.id} className="hover:bg-stone-50/80">
-                    <td className="py-3 px-3 font-mono-num text-stone-600 whitespace-nowrap">
-                      {entry.dateStr}
-                    </td>
-                    <td className="py-3 px-3 font-semibold text-stone-900 whitespace-nowrap">
-                      {st.name}
-                    </td>
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      <span
-                        className={`font-semibold ${
+        {filteredLedger.length === 0 ? (
+          <div className="p-6 rounded-xl bg-[#FAF8F5] border border-stone-200 text-center text-xs text-stone-500">
+            No cash advances or reimbursements logged yet. Use the form above to record your first entry.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-stone-200 text-stone-500">
+                  <th className="py-2.5 px-3 font-semibold">Date</th>
+                  <th className="py-2.5 px-3 font-semibold">Staff Member</th>
+                  <th className="py-2.5 px-3 font-semibold">Bucket Type</th>
+                  <th className="py-2.5 px-3 font-semibold">Reason / Item</th>
+                  <th className="py-2.5 px-3 font-semibold">Audit Trail</th>
+                  <th className="py-2.5 px-3 font-semibold text-right">Salary Impact</th>
+                  <th className="py-2.5 px-3 font-semibold text-right">Slip</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {filteredLedger.map((entry) => {
+                  const st = staffList.find((s) => s.id === entry.staffId) || staffList[0];
+                  const stFin = calculateStaffFinancials(st, cashLedger, loans, currentDay);
+                  const isAdd = entry.bucket === 'reimbursement';
+                  return (
+                    <tr key={entry.id} className="hover:bg-stone-50/80">
+                      <td className="py-3 px-3 font-mono-num text-stone-600 whitespace-nowrap">
+                        {entry.dateStr}
+                      </td>
+                      <td className="py-3 px-3 font-semibold text-stone-900 whitespace-nowrap">
+                        {st.name}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span
+                          className={`font-semibold ${
+                            isAdd ? 'text-emerald-700' : 'text-amber-700'
+                          }`}
+                        >
+                          {isAdd
+                            ? 'Home Reimbursement (+Add)'
+                            : 'Chhota Advance (-Deduct)'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-stone-700">{entry.reason}</td>
+                      <td className="py-3 px-3 text-stone-500 whitespace-nowrap">
+                        Added by {entry.loggedBy} · {entry.loggedAt}
+                      </td>
+                      <td
+                        className={`py-3 px-3 font-mono-num font-bold text-right whitespace-nowrap ${
                           isAdd ? 'text-emerald-700' : 'text-amber-700'
                         }`}
                       >
-                        {isAdd
-                          ? 'Home Reimbursement (+Add)'
-                          : 'Chhota Advance (-Deduct)'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-stone-700">{entry.reason}</td>
-                    <td className="py-3 px-3 text-stone-500 whitespace-nowrap">
-                      Added by {entry.loggedBy} · {entry.loggedAt}
-                    </td>
-                    <td
-                      className={`py-3 px-3 font-mono-num font-bold text-right whitespace-nowrap ${
-                        isAdd ? 'text-emerald-700' : 'text-amber-700'
-                      }`}
-                    >
-                      {isAdd ? '+' : '-'}₹{entry.amount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-3 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenReceiptModal({
-                            staffName: st.name,
-                            staffNameHi: st.nameHi,
-                            phone: st.phone,
-                            entryTypeLabel: isAdd ? 'Home Reimbursement' : 'Chhota Advance',
-                            entryTypeLabelHi: isAdd ? 'घर सामान खर्च' : 'छोटा एडवांस',
-                            dateStr: entry.dateStr,
-                            amountChanged: entry.amount,
-                            isAddition: isAdd,
-                            paidLeavesUsed: stFin.paidLeavesUsed,
-                            paidLeaveQuota: stFin.paidLeavesQuota,
-                            totalBorrowedThisMonth: stFin.chhotaAdvanceTotal,
-                            reimbursementsThisMonth: stFin.reimbursementsTotal,
-                            activeEmiCut: stFin.activeLoanEmiCut,
-                            netPayableLeft: stFin.netPayableLeft,
-                            loggedBy: entry.loggedBy,
-                          })
-                        }
-                        className="text-emerald-700 hover:underline font-semibold inline-flex items-center gap-1"
-                      >
-                        <Share2 className="w-3 h-3" />
-                        <span>Hindi Slip</span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {isAdd ? '+' : '-'}₹{entry.amount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenReceiptModal({
+                              staffName: st.name,
+                              staffNameHi: st.nameHi,
+                              phone: st.phone,
+                              entryTypeLabel: isAdd ? 'Home Reimbursement' : 'Chhota Advance',
+                              entryTypeLabelHi: isAdd ? 'घर सामान खर्च' : 'छोटा एडवांस',
+                              dateStr: entry.dateStr,
+                              amountChanged: entry.amount,
+                              isAddition: isAdd,
+                              paidLeavesUsed: stFin.paidLeavesUsed,
+                              paidLeaveQuota: stFin.paidLeavesQuota,
+                              totalBorrowedThisMonth: stFin.chhotaAdvanceTotal,
+                              reimbursementsThisMonth: stFin.reimbursementsTotal,
+                              activeEmiCut: stFin.activeLoanEmiCut,
+                              netPayableLeft: stFin.netPayableLeft,
+                              loggedBy: entry.loggedBy,
+                            })
+                          }
+                          className="text-emerald-700 hover:underline font-semibold inline-flex items-center gap-1"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          <span>Hindi Slip</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* 1-Click Month-End UPI Settlement Modal */}
@@ -705,7 +714,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                   1st-of-Month UPI Settlement & Payslip
                 </p>
                 <h3 id="upi-settlement-title" className="text-lg font-bold text-stone-900">
-                  Settle {settlementStaff.name} ({settlementStaff.nameHi})
+                  Settle {language === 'hi' ? settlementStaff.nameHi : settlementStaff.name}
                 </h3>
               </div>
               <button
