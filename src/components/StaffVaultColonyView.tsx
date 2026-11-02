@@ -9,6 +9,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { ColonyFreeSlot, StaffMember } from '../types/khata';
+import { InfoPopupButton } from './InfoPopupButton';
 
 interface StaffVaultColonyViewProps {
   staffList: StaffMember[];
@@ -51,14 +52,16 @@ export const StaffVaultColonyView: React.FC<StaffVaultColonyViewProps> = ({
     <div className="space-y-8">
       {/* Section 1: Digital KYC & Neighbor Reference Vault */}
       <section aria-label="Staff Digital KYC and Reference Vault" className="space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-700" />
-            <span>Staff Digital KYC, Police Verification & Neighbor Reference Vault</span>
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-700" />
+          <h2 className="text-base sm:text-lg font-bold text-stone-900">
+            Staff Digital KYC & Police Verification Vault
           </h2>
-          <p className="text-xs text-stone-500">
-            Stores masked Aadhaar ID, emergency village contact, RWA/Police verification ID, and neighbor reference for every household worker.
-          </p>
+          <InfoPopupButton
+            title="Digital KYC & Emergency Vault"
+            subtitle="Household Safety Record"
+            description="Keeps masked Aadhaar numbers, police/RWA verification IDs, home village emergency contacts, neighbor references, and verified UPI IDs handy in one place."
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -73,7 +76,7 @@ export const StaffVaultColonyView: React.FC<StaffVaultColonyViewProps> = ({
                     {staff.name} ({staff.nameHi})
                   </h3>
                   <p className="text-xs text-stone-500">
-                    {staff.role} · Working since {staff.kyc.joinedSince}
+                    {staff.role} · Since {staff.kyc.joinedSince}
                   </p>
                 </div>
                 <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1 shrink-0">
@@ -120,13 +123,15 @@ export const StaffVaultColonyView: React.FC<StaffVaultColonyViewProps> = ({
       {/* Section 2: Hyper-Local Colony Free-Slot Board */}
       <section aria-label="Hyper-Local Colony Free-Slot Board" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-stone-900">
-              Hyper-Local "Colony Free-Slot Board" (Block A, B & C RWA)
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-stone-900">
+              Colony Free-Slot Board (Block A, B & C)
             </h2>
-            <p className="text-xs text-stone-500">
-              Discover verified maids, cooks, and malis already working in your lane who have an open 1-hour slot between houses.
-            </p>
+            <InfoPopupButton
+              title="Hyper-Local Colony Free-Slot Board"
+              subtitle="Neighbor-Vouched Hiring"
+              description="Discover verified maids, cooks, and malis already working in your RWA lane who have an open 1-hour slot between houses, or post your staff's open slot to help them earn extra income."
+            />
           </div>
 
           <button
@@ -135,7 +140,7 @@ export const StaffVaultColonyView: React.FC<StaffVaultColonyViewProps> = ({
             className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-stone-900 text-white hover:bg-stone-800 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Post Staff's Free 1-Hr Slot for Neighbors</span>
+            <span>Post Staff's Free 1-Hr Slot</span>
           </button>
         </div>
 

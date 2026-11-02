@@ -20,6 +20,7 @@ import {
   calculateMilkSummary,
   DHOBI_RATES,
 } from '../utils/mathEngine';
+import { InfoPopupButton } from './InfoPopupButton';
 
 interface DhobiMilkViewProps {
   dhobiBatches: DhobiBatch[];
@@ -108,22 +109,31 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Left 6 Cols: Model 3 — Raju Dhobi Piece-Count Return Tracker */}
       <section
         aria-label="Raju Dhobi Piece-Count Return Tracker"
         className="lg:col-span-6 space-y-6"
       >
-        <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-5">
           <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
-            <div>
-              <span className="text-xs font-medium text-stone-500">
-                Model 3: Piece-Count Return Tracker
-              </span>
-              <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2 mt-0.5">
-                <Shirt className="w-5 h-5 text-emerald-700" />
-                <span>Raju Dhobi — Ironing & Dry Cleaning Khata</span>
+            <div className="flex items-center gap-2">
+              <Shirt className="w-5 h-5 text-emerald-700 shrink-0" />
+              <h2 className="text-base sm:text-lg font-bold text-stone-900">
+                Raju Dhobi — Ironing & Return Khata
               </h2>
+              <InfoPopupButton
+                title="Model 3: Piece-Count Return Tracker"
+                subtitle="Raju Dhobi Rate Card & Missing Clothes Guard"
+                formula="Batch Cost = (Shirts × ₹7) + (Trousers × ₹10) + (Sarees/Bedsheets × ₹25) + (Heavy Suits × ₹120)"
+                description="Tracks every batch handed over to the dhobi and highlights unreturned pieces in red until checked back in."
+                breakdownItems={[
+                  { label: 'Total Clothes Given (Nov)', value: `${dhobiSummary.totalGiven} pcs` },
+                  { label: 'Total Returned', value: `${dhobiSummary.totalReturned} pcs`, highlight: 'emerald' },
+                  { label: 'Pending With Dhobi', value: `${dhobiSummary.pendingPiecesCount} pcs`, highlight: dhobiSummary.pendingPiecesCount > 0 ? 'rose' : 'emerald' },
+                  { label: 'November Ironing Bill', value: `₹${dhobiSummary.totalCost.toLocaleString('en-IN')}` },
+                ]}
+              />
             </div>
 
             <div className="text-right shrink-0">
@@ -163,7 +173,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
           {/* Give Clothes Batch Builder */}
           <form onSubmit={handleCreateBatch} className="space-y-4">
             <h3 className="text-sm font-bold text-stone-900">
-              Give New Clothes Batch (Handover to Raju Dhobi)
+              Give New Clothes Batch
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -269,7 +279,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-bold text-stone-900">
-                        Given on {batch.givenDate} · {batch.totalGiven} Pieces · Batch Cost:{' '}
+                        Given on {batch.givenDate} · {batch.totalGiven} Pieces ·{' '}
                         <span className="font-mono-num text-emerald-800">₹{batch.batchCost}</span>
                       </p>
                       <p className="text-[11px] text-stone-500">
@@ -338,20 +348,32 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
         aria-label="Milkman and Water Can Exception Calendar"
         className="lg:col-span-6 space-y-6"
       >
-        <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-5">
           <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
-            <div>
-              <span className="text-xs font-medium text-stone-500">
-                Model 4: Daily Quantity Exception Calendar
-              </span>
-              <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2 mt-0.5">
-                <Milk className="w-5 h-5 text-emerald-700" />
-                <span>{milkConfig.vendorName}</span>
-              </h2>
-              <p className="text-xs text-stone-500">
-                Standing Default: {milkConfig.defaultDailyLiters}L {milkConfig.milkType} @ ₹
-                {milkConfig.pricePerLiter}/L
-              </p>
+            <div className="flex items-center gap-2">
+              <Milk className="w-5 h-5 text-emerald-700 shrink-0" />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-base sm:text-lg font-bold text-stone-900">
+                    {milkConfig.vendorName}
+                  </h2>
+                  <InfoPopupButton
+                    title="Model 4: Daily Quantity Exception Calendar"
+                    subtitle={`${milkConfig.defaultDailyLiters}L ${milkConfig.milkType} @ ₹${milkConfig.pricePerLiter}/L`}
+                    formula={`Monthly Bill = (Total Liters × ₹${milkConfig.pricePerLiter}/L) + Side Items (Paneer / Desi Ghee / Water Cans)`}
+                    description="Instead of logging milk every single morning, GharKhata assumes your standing 2.0L default and only asks you to tap dates when you paused delivery (0L), took extra (+1L), or bought side items."
+                    breakdownItems={[
+                      { label: 'Total Milk Delivered (Nov)', value: `${milkSummary.totalLiters}L (₹${milkSummary.milkCost.toLocaleString('en-IN')})` },
+                      { label: 'Paused Out-of-Station Days', value: `${milkSummary.pausedDays} Days (0L)`, highlight: 'amber' },
+                      { label: 'Paneer, Ghee & Water Cans', value: `+₹${milkSummary.sideItemsTotal.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                      { label: 'November Grand Total', value: `₹${milkSummary.grandTotal.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                    ]}
+                  />
+                </div>
+                <p className="text-xs text-stone-500">
+                  Default: {milkConfig.defaultDailyLiters}L @ ₹{milkConfig.pricePerLiter}/L
+                </p>
+              </div>
             </div>
 
             <div className="text-right shrink-0">
@@ -368,19 +390,19 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
           {/* Summary Strip */}
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200">
-              <span className="text-stone-500 block">Total Milk (Nov)</span>
+              <span className="text-stone-500 block">Total Milk</span>
               <span className="text-sm font-mono-num font-bold text-stone-900">
                 {milkSummary.totalLiters}L (₹{milkSummary.milkCost.toLocaleString('en-IN')})
               </span>
             </div>
             <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200">
-              <span className="text-stone-500 block">Paused Days (0L)</span>
+              <span className="text-stone-500 block">Paused (0L)</span>
               <span className="text-sm font-mono-num font-bold text-amber-700">
-                {milkSummary.pausedDays} Days Out
+                {milkSummary.pausedDays} Days
               </span>
             </div>
             <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200">
-              <span className="text-stone-500 block">Paneer / Ghee / Cans</span>
+              <span className="text-stone-500 block">Side Items</span>
               <span className="text-sm font-mono-num font-bold text-emerald-700">
                 +₹{milkSummary.sideItemsTotal.toLocaleString('en-IN')}
               </span>
@@ -389,9 +411,6 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
 
           {/* 30-Day Milk Grid */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-stone-700">
-              Tap any date to toggle 0L Paused, +1L Extra, or add Paneer / Desi Ghee:
-            </p>
             <div className="grid grid-cols-6 sm:grid-cols-10 gap-1.5">
               {Array.from({ length: 30 }, (_, i) => i + 1).map((dayNum) => {
                 const rec = milkConfig.days[dayNum];
@@ -429,10 +448,10 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
           <div className="p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-stone-900">
-                Date: {selectedMilkDay} Nov 2026 — Milk & Side Items
+                Date: {selectedMilkDay} Nov 2026
               </span>
               <span className="text-xs font-mono-num text-stone-500">
-                Logged by {selectedMilkRecord.loggedBy}
+                By {selectedMilkRecord.loggedBy}
               </span>
             </div>
 
@@ -446,7 +465,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
                     : 'bg-white text-stone-700 border-stone-300 hover:bg-rose-50'
                 }`}
               >
-                0L (Paused / Out)
+                0L (Paused)
               </button>
 
               <button
@@ -476,7 +495,7 @@ export const DhobiMilkView: React.FC<DhobiMilkViewProps> = ({
 
             <div className="pt-2 border-t border-stone-200 space-y-2">
               <span className="text-xs font-semibold text-stone-600 block">
-                Add Dairy / Utility Side Items for {selectedMilkDay} Nov:
+                Add Dairy / Utility Side Items ({selectedMilkDay} Nov):
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 {(

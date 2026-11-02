@@ -18,6 +18,7 @@ import {
   StaffMember,
 } from '../types/khata';
 import { calculateStaffFinancials } from '../utils/mathEngine';
+import { InfoPopupButton } from './InfoPopupButton';
 
 interface AttendanceCalendarViewProps {
   staffList: StaffMember[];
@@ -181,17 +182,33 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         className="bg-white border border-stone-200 rounded-2xl p-5 space-y-4"
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-stone-100 pb-3">
-          <div>
-            <h2 className="text-lg font-bold text-stone-900">
-              {staff.name} — Live Salary Calculation Breakdown (Nov 2026)
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-stone-900">
+              {staff.name} — Live Salary Breakdown (Nov 2026)
             </h2>
-            <p className="text-xs text-stone-500">
-              {staff.modelType === 'fixed_monthly'
-                ? `Paid Leave Quota Engine: First ${staff.paidLeaveQuota} absences = ₹0 Cut · Leave #${
-                    staff.paidLeaveQuota + 1
-                  }+ deducts ₹${fin.dailyRate}/day`
-                : `Hourly & Weekly Visit Engine: Standard shift ${staff.standardVisitHours} hrs · Extra hours auto-multiply @ +₹${staff.hourlyOvertimeRate}/hr`}
-            </p>
+            <InfoPopupButton
+              title={`${staff.name} — Attendance & Leave Rules`}
+              subtitle={
+                staff.modelType === 'fixed_monthly'
+                  ? 'Model 1: Fixed Monthly + Paid Leave Buffer'
+                  : 'Model 2: Hourly & Weekly Visit Engine'
+              }
+              formula={
+                staff.modelType === 'fixed_monthly'
+                  ? `Daily Cut Rate = ₹${fin.baseSalary} ÷ 30 = ₹${fin.dailyRate}/day (Only after ${staff.paidLeaveQuota} free paid leaves)`
+                  : `Overtime Pay = Extra Hours × ₹${staff.hourlyOvertimeRate}/hr`
+              }
+              description={
+                staff.modelType === 'fixed_monthly'
+                  ? `First ${staff.paidLeaveQuota} absences in November have ₹0 salary cut. From absence #${staff.paidLeaveQuota + 1} onwards, ₹${fin.dailyRate}/day is deducted.`
+                  : `Standard shift is ${staff.standardVisitHours} hours. Any extra hours logged automatically add ₹${staff.hourlyOvertimeRate}/hr to salary.`
+              }
+              bullets={[
+                'Half-Day deducts 50% of a single day rate once paid leave quota is used.',
+                'Task-Level Partial Skip deducts a flat ₹50 for the skipped duty without consuming a full day leave.',
+                'Zero-Leave Punctuality Bonus adds +₹200 when 0 absences are taken in the month.',
+              ]}
+            />
           </div>
 
           {staff.modelType === 'fixed_monthly' && (
@@ -205,7 +222,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                     : 'bg-stone-100 border-stone-300 text-stone-600'
                 }`}
               >
-                Zero-Leave Punctuality Bonus (+₹{staff.zeroLeaveBonusAmount}):{' '}
+                Zero-Leave Bonus (+₹{staff.zeroLeaveBonusAmount}):{' '}
                 {staff.zeroLeaveBonusEnabled ? 'ON' : 'OFF'}
               </button>
             </div>
@@ -221,7 +238,15 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </div>
 
           <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200">
-            <span className="text-stone-500 block">Paid Leaves Quota</span>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-stone-500">Paid Leaves Quota</span>
+              <InfoPopupButton
+                title="Paid Leave Quota Buffer"
+                subtitle="Indian Household Standard"
+                formula={`Quota = ${fin.paidLeavesQuota} Paid Leaves / Month (₹0 Cut)`}
+                description={`${staff.name} has used ${fin.paidLeavesUsed} of ${fin.paidLeavesQuota} paid leaves this month. Unpaid leave deductions only start after ${fin.paidLeavesQuota} days.`}
+              />
+            </div>
             <span className="text-base font-mono-num font-bold text-emerald-700">
               {fin.paidLeavesUsed} / {fin.paidLeavesQuota} (₹0 Cut)
             </span>
@@ -235,7 +260,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </div>
 
           <div className="p-3 rounded-xl bg-[#FAF8F5] border border-stone-200">
-            <span className="text-stone-500 block">Partial Task Skip Cut</span>
+            <span className="text-stone-500 block">Task Skip Cut</span>
             <span className="text-base font-mono-num font-bold text-rose-600">
               -₹{fin.partialTaskCut.toLocaleString('en-IN')}
             </span>
@@ -256,7 +281,22 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           </div>
 
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300">
-            <span className="text-emerald-900 font-semibold block">Net Left to Pay</span>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-emerald-900 font-semibold">Net Left to Pay</span>
+              <InfoPopupButton
+                title="Net Left to Pay Formula"
+                formula="Base - Unpaid Leave Cut - Task Skip Cut + OT/Bhatta/Bonus + Reimbursements - Chhota Advance - Monthly EMI"
+                description={`Live payable balance for ${staff.name}:`}
+                breakdownItems={[
+                  { label: 'Base Salary', value: `₹${fin.baseSalary}` },
+                  { label: 'Leave & Task Cuts', value: `-₹${fin.unpaidLeaveCut + fin.partialTaskCut}`, highlight: 'rose' },
+                  { label: 'OT, Bhatta & Bonus', value: `+₹${fin.overtimePay + fin.partyBhattaPay + fin.zeroLeaveBonus}`, highlight: 'emerald' },
+                  { label: 'Reimbursements', value: `+₹${fin.reimbursementsTotal}`, highlight: 'emerald' },
+                  { label: 'Advances & Loan EMI', value: `-₹${fin.chhotaAdvanceTotal + fin.activeLoanEmiCut}`, highlight: 'amber' },
+                  { label: 'Net Left to Pay', value: `₹${fin.netPayableLeft}`, highlight: 'emerald' },
+                ]}
+              />
+            </div>
             <span
               data-testid="calendar-net-payable"
               className="text-lg font-mono-num font-bold text-emerald-800"
@@ -273,14 +313,14 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
         <div className="lg:col-span-7 bg-white border border-stone-200 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-stone-900">
-              November 2026 Attendance Grid (Tap any date)
+              November 2026 Attendance Grid
             </h3>
-            <div className="flex items-center gap-3 text-xs text-stone-600">
-              <span>Present (Auto)</span>
+            <div className="flex items-center gap-2 text-xs text-stone-600">
+              <span>Present</span>
               <span>·</span>
               <span className="text-rose-600 font-medium">Absent</span>
               <span>·</span>
-              <span className="text-amber-700 font-medium">Task Skip / Half-Day</span>
+              <span className="text-amber-700 font-medium">Skip / Half-Day</span>
             </div>
           </div>
 
@@ -349,7 +389,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
                 Selected Date · Logged by {dayRecord.loggedBy}
               </span>
               <h3 className="text-lg font-bold text-stone-900">
-                {selectedDay} November 2026 — {staff.name}
+                {selectedDay} Nov 2026 — {staff.name}
               </h3>
             </div>
             <span className="text-xs font-mono-num text-stone-500">{dayRecord.loggedAt}</span>
@@ -358,7 +398,7 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           {/* Attendance Status Buttons */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-stone-700 block">
-              1. Attendance Status (Auto-Present Default)
+              1. Attendance Status
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -411,9 +451,16 @@ export const AttendanceCalendarView: React.FC<AttendanceCalendarViewProps> = ({
           {/* Task-Level Partial Skip Checklist */}
           <div className="space-y-2 pt-2 border-t border-stone-100">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-700">
-                2. Task-Level Partial Skip (Uncheck skipped task for flat -₹50 cut)
-              </label>
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-semibold text-stone-700">
+                  2. Task-Level Partial Skip
+                </label>
+                <InfoPopupButton
+                  title="Task-Level Partial Skip (-₹50)"
+                  subtitle="Fair Partial Deduction"
+                  description="If a worker comes in the morning (e.g. does Jhadu/Pochha) but skips evening Bartan or dinner cooking, uncheck the skipped duty to deduct a flat ₹50 instead of cutting a full day's pay."
+                />
+              </div>
             </div>
             <div className="space-y-2">
               {staff.tasks.map((task) => {

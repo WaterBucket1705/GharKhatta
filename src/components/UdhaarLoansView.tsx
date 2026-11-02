@@ -21,6 +21,7 @@ import {
   calculateStaffFinancials,
   evaluateOverBorrowingRisk,
 } from '../utils/mathEngine';
+import { InfoPopupButton } from './InfoPopupButton';
 
 interface UdhaarLoansViewProps {
   staffList: StaffMember[];
@@ -140,16 +141,23 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
     : null;
 
   return (
-    <div className="space-y-8">
-      {/* Top Staff Selector + 1st-of-Month UPI Settlement Trigger */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-bold text-stone-900">
-            3-Bucket Udhaar Engine, Over-Borrowing Guardrail & 1st-of-Month UPI Settlement
+    <div className="space-y-6">
+      {/* Top Staff Selector + 3-Bucket Info Popup */}
+      <div className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-stone-900">
+            3-Bucket Udhaar & 1st-of-Month UPI Settlement
           </h2>
-          <p className="text-xs text-stone-500">
-            Never mix Chhota Advance (100% deducted this month), Bada Udhaar (Multi-month EMI), and Home Reimbursements (+Added to salary).
-          </p>
+          <InfoPopupButton
+            title="The 3-Bucket Household Cash Engine"
+            subtitle="Zero Salary Confusion"
+            description="GharKhata separates household staff cash flows into 3 distinct buckets so advances, long-term loans, and errands never get mixed up:"
+            bullets={[
+              '1. Chhota Advance: Mid-month cash borrowed (e.g. ₹500 for gas cylinder). Deducted 100% from this month’s remaining salary.',
+              '2. Bada Udhaar Loan: Multi-month interest-free loan (e.g. ₹12,000 for school admission) with a fixed monthly auto-cut EMI.',
+              '3. Home Reimbursement: Reverse Udhaar when staff spends from their own pocket (e.g. ₹350 for pots/khad). Added in green (+₹) to their salary.',
+            ]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -173,18 +181,25 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
       {/* Main 2-Column Grid: Left = 3-Bucket Logger + Over-Borrowing Risk Guardrail | Right = Bada Udhaar Loan Progress Cards & Settlement */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left 6 Cols: 3-Bucket Cash Logger */}
-        <div className="lg:col-span-6 bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+        <div className="lg:col-span-6 bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-5">
           <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-4">
             <div>
               <span className="text-xs font-medium text-stone-500">
-                Selected Staff · Logged by {activeMember}
+                {selectedStaff.name} · By {activeMember}
               </span>
-              <h3 className="text-lg font-bold text-stone-900">
-                Log Cash or Reimbursement for {selectedStaff.name}
+              <h3 className="text-base sm:text-lg font-bold text-stone-900">
+                Log Advance, Loan or Reimbursement
               </h3>
             </div>
             <div className="text-right">
-              <span className="text-xs text-stone-500 block">Accrued Earned ({currentDay}d)</span>
+              <div className="flex items-center justify-end gap-1">
+                <span className="text-xs text-stone-500">Earned ({currentDay}d)</span>
+                <InfoPopupButton
+                  title="Accrued Earnings & Over-Borrowing Guardrail"
+                  formula={`Accrued Earned = (Base ₹${fin.baseSalary} ÷ 30) × ${currentDay} days - Leave/Task Cuts + OT/Bhatta`}
+                  description={`Up to Day ${currentDay}, ${selectedStaff.name} has earned ₹${fin.accruedEarnedSoFar.toLocaleString('en-IN')}. If a proposed Chhota Advance pushes total borrowing above accrued earnings or reduces Net Left to Pay below ₹0, the Over-Borrowing Guardrail warns you immediately.`}
+                />
+              </div>
               <span className="text-base font-mono-num font-bold text-stone-900">
                 ₹{fin.accruedEarnedSoFar.toLocaleString('en-IN')}
               </span>
@@ -192,7 +207,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
           </div>
 
           {/* Bucket Type Selector */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => {
@@ -207,9 +222,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               }`}
             >
               <p className="text-xs font-bold">1. Chhota Advance</p>
-              <p className="text-[11px] text-stone-500 mt-0.5">
-                Deducted 100% from this month's salary
-              </p>
+              <p className="text-[11px] text-stone-500 mt-0.5">-100% This Month</p>
             </button>
 
             <button
@@ -226,10 +239,8 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                   : 'bg-[#FAF8F5] border-stone-200 text-stone-700 hover:bg-stone-100'
               }`}
             >
-              <p className="text-xs font-bold">2. Bada Udhaar Loan</p>
-              <p className="text-[11px] text-stone-500 mt-0.5">
-                Multi-month auto-cut EMI tracker
-              </p>
+              <p className="text-xs font-bold">2. Bada Udhaar</p>
+              <p className="text-[11px] text-stone-500 mt-0.5">Multi-Month EMI</p>
             </button>
 
             <button
@@ -245,10 +256,8 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                   : 'bg-[#FAF8F5] border-stone-200 text-stone-700 hover:bg-stone-100'
               }`}
             >
-              <p className="text-xs font-bold">3. Home Reimbursement</p>
-              <p className="text-[11px] text-stone-500 mt-0.5">
-                Reverse Udhaar: +Added to salary
-              </p>
+              <p className="text-xs font-bold">3. Reimbursement</p>
+              <p className="text-[11px] text-stone-500 mt-0.5">+Add to Salary</p>
             </button>
           </div>
 
@@ -291,7 +300,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               ) : (
                 <div>
                   <label className="text-xs font-semibold text-stone-700 block mb-1">
-                    Quick Preset Amounts
+                    Quick Presets
                   </label>
                   <div className="flex items-center gap-1.5">
                     {[300, 500, 1200, 2500].map((preset) => (
@@ -314,7 +323,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                 htmlFor="udhaar-reason-input"
                 className="text-xs font-semibold text-stone-700 block mb-1"
               >
-                Reason / Purpose (Visible on WhatsApp & Hindi Audio Slip)
+                Reason / Purpose
               </label>
               <input
                 id="udhaar-reason-input"
@@ -342,11 +351,11 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                       Live Over-Borrowing Risk Guardrail Triggered
                     </p>
                     <p className="text-xs text-rose-800 leading-relaxed">
-                      Caution: <strong>{selectedStaff.name}</strong> has earned{' '}
+                      <strong>{selectedStaff.name}</strong> earned{' '}
                       <strong className="font-mono-num">
                         ₹{riskAssessment.earnedSoFar.toLocaleString('en-IN')}
                       </strong>{' '}
-                      so far this month and already borrowed{' '}
+                      so far and borrowed{' '}
                       <strong className="font-mono-num">
                         ₹{riskAssessment.alreadyBorrowed.toLocaleString('en-IN')}
                       </strong>
@@ -354,11 +363,11 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                       <strong className="font-mono-num">
                         ₹{riskAssessment.proposedAdvance.toLocaleString('en-IN')}
                       </strong>{' '}
-                      now puts them{' '}
+                      exceeds accrued earnings by{' '}
                       <strong className="font-mono-num">
                         ₹{riskAssessment.excessAmount.toLocaleString('en-IN')}
-                      </strong>{' '}
-                      beyond accrued earnings.
+                      </strong>
+                      .
                     </p>
                   </div>
                 </div>
@@ -393,7 +402,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
               <Plus className="w-4 h-4" />
               <span>
                 {entryBucket === 'reimbursement'
-                  ? `+₹${numericAmount || 0} Add to Salary (Home Purchase Reimbursement)`
+                  ? `+₹${numericAmount || 0} Add to Salary (Reimbursement)`
                   : entryBucket === 'bada_udhaar_loan'
                   ? `Create ₹${numericAmount || 0} Multi-Month Loan`
                   : `Log -₹${numericAmount || 0} Chhota Advance for ${selectedStaff.name}`}
@@ -405,15 +414,17 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
         {/* Right 6 Cols: Bada Udhaar Multi-Month EMI Loan Tracker Cards + 1st-of-Month Settlement */}
         <div className="lg:col-span-6 space-y-6">
           {/* Active Multi-Month Loans */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-4">
+          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-stone-900">
-                  Bada Udhaar (Multi-Month EMI Loan Tracker)
+                  Bada Udhaar (Multi-Month EMI Tracker)
                 </h3>
-                <p className="text-xs text-stone-500">
-                  Auto-cuts monthly EMI from salary. Pause EMI for 1 festival month (e.g. Diwali) in 1 tap.
-                </p>
+                <InfoPopupButton
+                  title="Bada Udhaar & Festival EMI Pause"
+                  subtitle="Interest-Free Household Loans"
+                  description="Tracks large multi-month advances (such as school fees or village medical loans). Each month's EMI is automatically deducted from salary unless you tap 'Pause EMI 1 Month' for a festival buffer."
+                />
               </div>
             </div>
 
@@ -440,7 +451,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                           {staffMember?.name || loan.staffId} — {loan.purpose}
                         </p>
                         <p className="text-xs text-stone-500">
-                          Started {loan.startDate} · Logged by {loan.loggedBy}
+                          Started {loan.startDate} · {loan.loggedBy}
                         </p>
                       </div>
                       <button
@@ -455,12 +466,12 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
                         {loan.pausedThisMonth ? (
                           <>
                             <PlayCircle className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>Festival Pause Active (₹0 Cut) · Resume</span>
+                            <span>Festival Pause (₹0 Cut) · Resume</span>
                           </>
                         ) : (
                           <>
                             <PauseCircle className="w-3.5 h-3.5 text-amber-700" />
-                            <span>Pause EMI 1 Month (Diwali Buffer)</span>
+                            <span>Pause EMI 1 Month</span>
                           </>
                         )}
                       </button>
@@ -468,7 +479,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
 
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       <div>
-                        <span className="text-stone-500 block">Total Principal</span>
+                        <span className="text-stone-500 block">Principal</span>
                         <span className="font-mono-num font-bold text-stone-900">
                           ₹{loan.totalPrincipal.toLocaleString('en-IN')}
                         </span>
@@ -508,14 +519,15 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
           </div>
 
           {/* 1-Click Month-End UPI Settlement Panel */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-4">
-            <div>
+          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-stone-900">
-                1st-of-Month UPI Settlement & Payslip Generator
+                1st-of-Month UPI Settlement
               </h3>
-              <p className="text-xs text-stone-500">
-                Settle net remaining salary via UPI QR / Deep-Link and carry forward remaining loan balances automatically.
-              </p>
+              <InfoPopupButton
+                title="1-Click Month-End UPI Settlement"
+                description="Settles the net remaining salary via UPI, automatically deducts this month's active EMI from the Bada Udhaar loan balance, and generates a bilingual WhatsApp + spoken Hindi voice slip."
+              />
             </div>
 
             <div className="space-y-2.5">
@@ -559,7 +571,7 @@ export const UdhaarLoansView: React.FC<UdhaarLoansViewProps> = ({
       {/* Bottom 3-Bucket Cash Ledger Table with Filter Tabs */}
       <section
         aria-label="3-Bucket Cash Ledger History"
-        className="bg-white border border-stone-200 rounded-2xl p-6 space-y-4"
+        className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-base font-bold text-stone-900">

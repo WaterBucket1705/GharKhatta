@@ -28,7 +28,12 @@ import {
   calculateDhobiBatchCost,
   calculateStaffFinancials,
 } from './utils/mathEngine';
-import { ActiveTab, HeaderAndVoiceBar } from './components/HeaderAndVoiceBar';
+import {
+  ActiveTab,
+  HeaderAndVoiceBar,
+  TAB_TO_PATH,
+  pathToTab,
+} from './components/HeaderAndVoiceBar';
 import { DashboardView } from './components/DashboardView';
 import { AttendanceCalendarView } from './components/AttendanceCalendarView';
 import { UdhaarLoansView } from './components/UdhaarLoansView';
@@ -71,9 +76,19 @@ function loadSavedState(): StoredKhataState {
   const defaults = getFreshDemoDefaults();
   if (typeof window === 'undefined') return defaults;
   try {
+    const urlTab = pathToTab(window.location.pathname);
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaults;
+    if (!raw) {
+      return {
+        ...defaults,
+        activeTab: urlTab || defaults.activeTab,
+      };
+    }
     const parsed = JSON.parse(raw) as Partial<StoredKhataState>;
+    const resolvedTab =
+      window.location.pathname !== '/' && urlTab
+        ? urlTab
+        : urlTab || parsed.activeTab || defaults.activeTab;
     return {
       staffList: Array.isArray(parsed.staffList) ? parsed.staffList : defaults.staffList,
       cashLedger: Array.isArray(parsed.cashLedger) ? parsed.cashLedger : defaults.cashLedger,
@@ -88,7 +103,7 @@ function loadSavedState(): StoredKhataState {
       language: parsed.language || defaults.language,
       activeMember: parsed.activeMember || defaults.activeMember,
       selectedStaffId: parsed.selectedStaffId || defaults.selectedStaffId,
-      activeTab: parsed.activeTab || defaults.activeTab,
+      activeTab: resolvedTab,
     };
   } catch {
     return defaults;
@@ -100,9 +115,31 @@ export default function App() {
   const [initial] = useState<StoredKhataState>(() => loadSavedState());
 
   const [resetVersion, setResetVersion] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<ActiveTab>(
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(
     initial.activeTab || 'dashboard'
   );
+
+  const setActiveTab = (nextTab: ActiveTab) => {
+    setActiveTabState(nextTab);
+    if (typeof window !== 'undefined') {
+      const targetPath = TAB_TO_PATH[nextTab] || '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ tab: nextTab }, '', targetPath);
+      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const matched = pathToTab(window.location.pathname);
+      if (matched) {
+        setActiveTabState(matched);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [language, setLanguage] = useState<Language>(initial.language);
   const [activeMember, setActiveMember] = useState<FamilyMember>(
     initial.activeMember

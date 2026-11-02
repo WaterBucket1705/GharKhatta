@@ -28,6 +28,7 @@ import {
 } from '../utils/mathEngine';
 import { UI_TEXT } from '../i18n/translations';
 import { ActiveTab } from './HeaderAndVoiceBar';
+import { InfoPopupButton } from './InfoPopupButton';
 
 interface DashboardViewProps {
   staffList: StaffMember[];
@@ -166,15 +167,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Month-at-a-Glance Hero */}
       <section aria-label="November Household Financial Overview" className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-stone-500">
-              November 2026 Household Ledger · Day {currentDay} of 30 · Synced with {activeMember} · 100% Free Unlimited Staff
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-900 mt-0.5">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium text-stone-500">
+                Nov 2026 · Day {currentDay}/30 · {activeMember}
+              </p>
+              <InfoPopupButton
+                title="Live Household Salary & Udhaar Engine"
+                subtitle="November 2026 Overview"
+                formula="Net Left to Pay = Base Salary - Unpaid Leave Cut - Partial Task Cut + Overtime/Party Bhatta + Zero-Leave Bonus + Reimbursements - Chhota Advance - Bada Udhaar EMI"
+                description="GharKhata automatically calculates how much salary remains to be paid on the 1st of the month across all household staff."
+                breakdownItems={[
+                  { label: 'Total Monthly Base Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
+                  { label: 'Advances & Loan EMIs Cut', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
+                  { label: 'Staff Pocket Reimbursements', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                  { label: 'Net Remaining Payout', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                ]}
+              />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-stone-900 mt-0.5">
               {t.appSubtitle}
             </h1>
           </div>
@@ -202,8 +217,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* 4-Column KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col justify-between">
-            <span className="text-xs font-medium text-stone-500">{t.netPayoutLeftHero}</span>
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-medium text-stone-500">{t.netPayoutLeftHero}</span>
+              <InfoPopupButton
+                title="Net Staff Payout Remaining"
+                subtitle="1st-of-Month Final Liability"
+                formula="Base - Unpaid Leaves - Task Skips + OT/Bhatta + Reimbursements - Advances - Loan EMI"
+                description="Live sum of remaining salary to pay across all unsettled household staff for November 2026."
+                breakdownItems={[
+                  { label: 'Base Monthly Payroll', value: `₹${totalBasePayroll.toLocaleString('en-IN')}` },
+                  { label: 'Home Reimbursements (+Add)', value: `+₹${totalReimbursementsThisMonth.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                  { label: 'Advances & Loan EMIs (-Cut)', value: `-₹${totalAdvancesAndEmiThisMonth.toLocaleString('en-IN')}`, highlight: 'amber' },
+                  { label: 'Net Left to Pay', value: `₹${totalNetPayoutLeft.toLocaleString('en-IN')}`, highlight: 'emerald' },
+                ]}
+              />
+            </div>
             <div className="mt-2 flex items-baseline justify-between">
               <span className="text-2xl sm:text-3xl font-mono-num font-bold text-emerald-700">
                 ₹{totalNetPayoutLeft.toLocaleString('en-IN')}
@@ -212,15 +241,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 of ₹{totalBasePayroll.toLocaleString('en-IN')}
               </span>
             </div>
-            <p className="text-xs text-stone-500 mt-2">
-              Includes +₹{totalReimbursementsThisMonth} staff pocket reimbursements
-            </p>
           </div>
 
           <button
             type="button"
             onClick={() => onNavigateTab('udhaar')}
-            className="bg-white border border-stone-200 hover:border-amber-500 rounded-2xl p-5 text-left transition-colors flex flex-col justify-between"
+            className="bg-white border border-stone-200 hover:border-amber-500 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
           >
             <span className="text-xs font-medium text-stone-500">{t.totalAdvancesHero}</span>
             <div className="mt-2 flex items-baseline justify-between">
@@ -229,15 +255,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
               <Wallet className="w-4 h-4 text-amber-600" />
             </div>
-            <p className="text-xs text-stone-500 mt-2">
-              Chhota Advances + Auto-cut Bada Udhaar EMIs →
-            </p>
           </button>
 
           <button
             type="button"
             onClick={() => onNavigateTab('dhobi_milk')}
-            className="bg-white border border-stone-200 hover:border-rose-400 rounded-2xl p-5 text-left transition-colors flex flex-col justify-between"
+            className="bg-white border border-stone-200 hover:border-rose-400 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
           >
             <span className="text-xs font-medium text-stone-500">{t.pendingDhobiHero}</span>
             <div className="mt-2 flex items-baseline justify-between gap-2">
@@ -250,15 +273,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
               <Shirt className="w-4 h-4 text-rose-600 shrink-0" />
             </div>
-            <p className="text-xs text-rose-700 font-medium mt-2 truncate">
-              {dhobiSummary.pendingBreakdownText}
-            </p>
           </button>
 
           <button
             type="button"
             onClick={() => onNavigateTab('dhobi_milk')}
-            className="bg-white border border-stone-200 hover:border-emerald-600 rounded-2xl p-5 text-left transition-colors flex flex-col justify-between"
+            className="bg-white border border-stone-200 hover:border-emerald-600 rounded-2xl p-4 text-left transition-colors flex flex-col justify-between"
           >
             <span className="text-xs font-medium text-stone-500">{t.milkBillHero}</span>
             <div className="mt-2 flex items-baseline justify-between">
@@ -267,10 +287,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </span>
               <Milk className="w-4 h-4 text-emerald-700" />
             </div>
-            <p className="text-xs text-stone-500 mt-2">
-              {milkSummary.totalLiters}L Milk · {milkSummary.pausedDays}d Paused · +₹
-              {milkSummary.sideItemsTotal} Dairy
-            </p>
           </button>
         </div>
       </section>
@@ -278,30 +294,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Today's Quick Attendance Strip */}
       <section
         aria-label="Today Quick Attendance Strip"
-        className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3"
+        className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-stone-900">
-              Today's Quick Attendance Strip ({currentDay} Nov 2026)
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-bold text-stone-900">
+              Today's Quick Attendance ({currentDay} Nov)
             </h2>
-            <p className="text-xs text-stone-500">
-              Auto-Present default is active. Only tap an exception if someone is absent, half-day, or did guest party work.
-            </p>
+            <InfoPopupButton
+              title="Auto-Present Attendance Rule"
+              subtitle="Zero Daily Friction"
+              description="All staff default to Present every morning. You only need to tap a button below when someone is Absent, takes a Half-Day, or earns +₹200 Guest Party Bhatta."
+              bullets={[
+                'First 2 absences in a month use the Paid Leave Quota (₹0 salary cut).',
+                'From the 3rd absence onwards, 1 day salary (Base ÷ 30) is automatically deducted.',
+                'Tap any staff card to open the full 30-day calendar for partial task skips (-₹50) or overtime hours.',
+              ]}
+            />
           </div>
           <span className="text-xs text-stone-500">
-            Audit Stamp: {activeMember}
+            By {activeMember}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 pt-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {staffBreakdowns.map(({ staff }) => {
             const todayRecord = staff.attendance[currentDay];
             const currentStatus = todayRecord?.status || 'present';
             return (
               <div
                 key={staff.id}
-                className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-col justify-between gap-3"
+                className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200 flex flex-col justify-between gap-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -366,16 +389,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     onClick={() => onQuickMarkAttendance(staff.id, 'present', 200)}
                     className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-xs font-medium bg-white border border-stone-300 text-emerald-800 hover:bg-emerald-50 transition-colors whitespace-nowrap shrink-0"
                   >
-                    +₹200 Party Bhatta
+                    +₹200 Bhatta
                   </button>
                 </div>
-
-                {todayRecord && (
-                  <p className="text-[11px] text-stone-500">
-                    Added by {todayRecord.loggedBy} · {todayRecord.loggedAt}
-                    {todayRecord.partyBhatta ? ` · +₹${todayRecord.partyBhatta} Party Bhatta` : ''}
-                  </p>
-                )}
               </div>
             );
           })}
@@ -384,13 +400,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Pre-Loaded + Unlimited Staff Cards with Live "Money Left to Give" Engine */}
       <section aria-label="Household Staff Cards" className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-stone-900">
-            Household Staff Ledger & Live "Money Left to Give" ({staffList.length} Active Staff)
-          </h2>
-          <span className="text-xs text-stone-500">
-            Formula: Base - Unpaid Leave/Task Cut + OT/Bhatta + Reimbursement - Advance - Loan EMI
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-stone-900">
+              Household Staff ({staffList.length})
+            </h2>
+            <InfoPopupButton
+              title="How 'Net Left to Give' is Calculated"
+              subtitle="Live Salary Math Formula"
+              formula="Net Left = Base - Unpaid Leave Cut - Task Skip Cut + OT/Bhatta + Zero-Leave Bonus + Reimbursements - Chhota Advance - Monthly Loan EMI"
+              description="Tap the (?) icon next to any staff member's Net Left amount to inspect their exact rupee breakdown."
+            />
+          </div>
         </div>
 
         {staffBreakdowns.length === 0 ? (
@@ -398,9 +419,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <h3 className="text-base font-bold text-stone-900">
               Your Household Khata is Currently Empty
             </h3>
-            <p className="text-xs text-stone-500 max-w-md mx-auto">
-              Add your own household maid, cook, mali, or driver profiles for free, or restore the 4 pre-loaded demo profiles at any time.
-            </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
@@ -419,238 +437,228 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
         ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {staffBreakdowns.map(({ staff, fin }) => {
-            const pctRemaining = Math.max(
-              0,
-              Math.min(100, Math.round((fin.netPayableLeft / Math.max(1, fin.baseSalary)) * 100))
-            );
-            const latestLedger = cashLedger
-              .filter((e) => e.staffId === staff.id)
-              .slice(-1)[0];
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {staffBreakdowns.map(({ staff, fin }) => {
+              const pctRemaining = Math.max(
+                0,
+                Math.min(100, Math.round((fin.netPayableLeft / Math.max(1, fin.baseSalary)) * 100))
+              );
 
-            return (
-              <article
-                key={staff.id}
-                className="bg-white border border-stone-200 rounded-2xl p-6 flex flex-col justify-between space-y-5"
-              >
-                {/* Top Identity & Net Left to Pay */}
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
-                        <span>
-                          {staff.modelType === 'fixed_monthly'
-                            ? 'Model 1: Fixed Monthly + Paid Leave Buffer'
-                            : 'Model 2: Weekly Visit & Hourly Overtime'}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span>{staff.kyc.neighborReference.split('(')[0]}</span>
+              return (
+                <article
+                  key={staff.id}
+                  className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col justify-between space-y-4"
+                >
+                  {/* Top Identity & Net Left to Pay */}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-stone-900">
+                          {staff.name}{' '}
+                          <span className="text-xs font-medium text-stone-500">
+                            ({staff.nameHi})
+                          </span>
+                        </h3>
+                        <p className="text-xs text-stone-500">{staff.role}</p>
                       </div>
-                      <h3 className="text-xl font-bold text-stone-900 mt-0.5">
-                        {staff.name}{' '}
-                        <span className="text-sm font-medium text-stone-500">
-                          ({staff.nameHi})
+
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-xs font-medium text-stone-500">
+                            {t.netLeftToGive}
+                          </span>
+                          <InfoPopupButton
+                            title={`${staff.name} — Salary Breakdown`}
+                            subtitle={
+                              staff.modelType === 'fixed_monthly'
+                                ? 'Model 1: Fixed Monthly + Paid Leave Quota'
+                                : 'Model 2: Hourly / Visit + Overtime'
+                            }
+                            formula="Base - Unpaid Leave/Task Cut + OT/Bhatta/Bonus + Reimbursements - Advance - Loan EMI"
+                            description={`Exact calculation for ${staff.name} as of ${currentDay} Nov 2026:`}
+                            breakdownItems={[
+                              {
+                                label: 'Base Monthly Salary',
+                                value: `₹${fin.baseSalary.toLocaleString('en-IN')}`,
+                              },
+                              {
+                                label: `Paid Leaves Used (${fin.paidLeavesUsed}/${fin.paidLeavesQuota} quota)`,
+                                value: fin.unpaidLeaveCut > 0 ? `-₹${fin.unpaidLeaveCut}` : '₹0 Cut',
+                                highlight: fin.unpaidLeaveCut > 0 ? 'rose' : 'emerald',
+                              },
+                              {
+                                label: 'Task Partial Skip Cut',
+                                value: `-₹${fin.partialTaskCut}`,
+                                highlight: fin.partialTaskCut > 0 ? 'rose' : 'neutral',
+                              },
+                              {
+                                label: 'Overtime + Party Bhatta + Zero-Leave Bonus',
+                                value: `+₹${(fin.overtimePay + fin.partyBhattaPay + fin.zeroLeaveBonus).toLocaleString('en-IN')}`,
+                                highlight: 'emerald',
+                              },
+                              {
+                                label: 'Home Purchase Reimbursements (+Add)',
+                                value: `+₹${fin.reimbursementsTotal.toLocaleString('en-IN')}`,
+                                highlight: 'emerald',
+                              },
+                              {
+                                label: 'Chhota Advance Taken (-Deduct)',
+                                value: `-₹${fin.chhotaAdvanceTotal.toLocaleString('en-IN')}`,
+                                highlight: 'amber',
+                              },
+                              {
+                                label: 'Bada Udhaar Monthly EMI (-Deduct)',
+                                value: `-₹${fin.activeLoanEmiCut.toLocaleString('en-IN')}`,
+                                highlight: 'amber',
+                              },
+                              {
+                                label: 'Net Money Left to Give',
+                                value: `₹${fin.netPayableLeft.toLocaleString('en-IN')}`,
+                                highlight: 'emerald',
+                              },
+                            ]}
+                          />
+                        </div>
+                        <span
+                          data-testid={`net-payable-${staff.id}`}
+                          className={`text-2xl font-mono-num font-bold ${
+                            staff.settledForMonth
+                              ? 'text-stone-400 line-through'
+                              : fin.netPayableLeft < 0
+                              ? 'text-rose-600'
+                              : 'text-emerald-700'
+                          }`}
+                        >
+                          ₹{fin.netPayableLeft.toLocaleString('en-IN')}
                         </span>
-                      </h3>
-                      <p className="text-xs text-stone-600">{staff.role}</p>
+                        {staff.settledForMonth && (
+                          <span className="block text-[11px] font-semibold text-emerald-700">
+                            Settled via UPI ({staff.settledDate})
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-medium text-stone-500 block">
-                        {t.netLeftToGive}
+                    {/* Live Visual Progress Bar for Net Money Left to Give */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs text-stone-600">
+                        <span>
+                          Earned ({currentDay}d):{' '}
+                          <strong className="font-mono-num text-stone-900">
+                            ₹{fin.accruedEarnedSoFar.toLocaleString('en-IN')}
+                          </strong>
+                        </span>
+                        <span className="font-mono-num">{pctRemaining}% Left</span>
+                      </div>
+                      <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-200 rounded-full ${
+                            fin.netPayableLeft < 0
+                              ? 'bg-rose-600'
+                              : pctRemaining < 35
+                              ? 'bg-amber-600'
+                              : 'bg-emerald-700'
+                          }`}
+                          style={{ width: `${Math.max(6, pctRemaining)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Compact 3-Metric Summary Strip */}
+                  <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FAF8F5] border border-stone-200/80 text-xs">
+                    <div>
+                      <span className="text-stone-500 block">{t.baseSalary}</span>
+                      <span className="font-mono-num font-semibold text-stone-900">
+                        ₹{fin.baseSalary.toLocaleString('en-IN')}
                       </span>
-                      <span
-                        data-testid={`net-payable-${staff.id}`}
-                        className={`text-2xl font-mono-num font-bold ${
-                          staff.settledForMonth
-                            ? 'text-stone-400 line-through'
-                            : fin.netPayableLeft < 0
-                            ? 'text-rose-600'
-                            : 'text-emerald-700'
-                        }`}
-                      >
-                        ₹{fin.netPayableLeft.toLocaleString('en-IN')}
+                    </div>
+
+                    <div>
+                      <span className="text-stone-500 block">
+                        {staff.modelType === 'fixed_monthly' ? 'Leaves / Cuts' : 'Overtime'}
                       </span>
-                      {staff.settledForMonth && (
-                        <span className="block text-[11px] font-semibold text-emerald-700">
-                          Settled via UPI ({staff.settledDate})
+                      {staff.modelType === 'fixed_monthly' ? (
+                        <span
+                          className={`font-mono-num font-semibold ${
+                            fin.unpaidLeaveCut + fin.partialTaskCut > 0
+                              ? 'text-rose-600'
+                              : 'text-emerald-700'
+                          }`}
+                        >
+                          {fin.paidLeavesUsed}/{fin.paidLeavesQuota}{' '}
+                          {fin.unpaidLeaveCut + fin.partialTaskCut > 0
+                            ? `(-₹${fin.unpaidLeaveCut + fin.partialTaskCut})`
+                            : '(₹0 Cut)'}
+                        </span>
+                      ) : (
+                        <span className="font-mono-num font-semibold text-emerald-700">
+                          +{fin.overtimeHoursTotal}h (+₹{fin.overtimePay})
                         </span>
                       )}
                     </div>
+
+                    <div>
+                      <span className="text-stone-500 block">Advance & EMI</span>
+                      <span className="font-mono-num font-semibold text-amber-700">
+                        -₹{(fin.chhotaAdvanceTotal + fin.activeLoanEmiCut).toLocaleString('en-IN')}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Live Visual Progress Bar for Net Money Left to Give */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-stone-600">
+                  {/* Primary Action Buttons */}
+                  <div className="pt-1 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectStaffForCalendar(staff.id)}
+                      className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-stone-100 text-stone-800 hover:bg-stone-200 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
                       <span>
-                        Accrued Earned So Far ({currentDay}d):{' '}
-                        <strong className="font-mono-num text-stone-900">
-                          ₹{fin.accruedEarnedSoFar.toLocaleString('en-IN')}
-                        </strong>
+                        {staff.modelType === 'hourly_visit'
+                          ? 'Hours & Garden'
+                          : 'Attendance'}
                       </span>
-                      <span className="font-mono-num">{pctRemaining}% of Base Remaining</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-stone-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-200 rounded-full ${
-                          fin.netPayableLeft < 0
-                            ? 'bg-rose-600'
-                            : pctRemaining < 35
-                            ? 'bg-amber-600'
-                            : 'bg-emerald-700'
-                        }`}
-                        style={{ width: `${Math.max(6, pctRemaining)}%` }}
-                      />
-                    </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onSelectStaffForUdhaar(staff.id)}
+                      className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-stone-100 text-stone-800 hover:bg-stone-200 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Add Advance</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpenReceiptModal({
+                          staffName: staff.name,
+                          staffNameHi: staff.nameHi,
+                          phone: staff.phone,
+                          entryTypeLabel: 'Monthly Hisab Summary',
+                          entryTypeLabelHi: 'नवंबर हिसाब पर्ची',
+                          dateStr: `${currentDay} Nov 2026`,
+                          paidLeavesUsed: fin.paidLeavesUsed,
+                          paidLeaveQuota: fin.paidLeavesQuota,
+                          totalBorrowedThisMonth: fin.chhotaAdvanceTotal,
+                          reimbursementsThisMonth: fin.reimbursementsTotal,
+                          activeEmiCut: fin.activeLoanEmiCut,
+                          netPayableLeft: fin.netPayableLeft,
+                          loggedBy: activeMember,
+                        })
+                      }
+                      className="ml-auto px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{t.sendWhatsAppHindiSlip}</span>
+                    </button>
                   </div>
-                </div>
-
-                {/* Itemized 3-Bucket & Attendance Math Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-200/80 text-xs">
-                  <div>
-                    <span className="text-stone-500 block">{t.baseSalary}</span>
-                    <span className="font-mono-num font-semibold text-stone-900 text-sm">
-                      ₹{fin.baseSalary.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-500 block">
-                      {staff.modelType === 'fixed_monthly' ? t.paidLeavesUsed : 'Overtime Hours'}
-                    </span>
-                    {staff.modelType === 'fixed_monthly' ? (
-                      <span
-                        className={`font-mono-num font-semibold text-sm ${
-                          fin.unpaidLeaveCut > 0 ? 'text-rose-600' : 'text-emerald-700'
-                        }`}
-                      >
-                        {fin.paidLeavesUsed}/{fin.paidLeavesQuota} Used{' '}
-                        {fin.unpaidLeaveCut > 0 ? `(-₹${fin.unpaidLeaveCut})` : '(₹0 Cut)'}
-                      </span>
-                    ) : (
-                      <span className="font-mono-num font-semibold text-emerald-700 text-sm">
-                        +{fin.overtimeHoursTotal}h (+₹{fin.overtimePay})
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-stone-500 block">OT / Bhatta / Bonus</span>
-                    <span className="font-mono-num font-semibold text-emerald-700 text-sm">
-                      +₹
-                      {(
-                        fin.overtimePay +
-                        fin.partyBhattaPay +
-                        fin.zeroLeaveBonus
-                      ).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-500 block">Chhota Advance</span>
-                    <span className="font-mono-num font-semibold text-amber-700 text-sm">
-                      -₹{fin.chhotaAdvanceTotal.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-500 block">Bada Udhaar EMI</span>
-                    <span className="font-mono-num font-semibold text-amber-700 text-sm">
-                      -₹{fin.activeLoanEmiCut.toLocaleString('en-IN')}/mo
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-stone-500 block">Reimbursement (+Add)</span>
-                    <span className="font-mono-num font-semibold text-emerald-700 text-sm">
-                      +₹{fin.reimbursementsTotal.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Audit Trail & Task Partial Skip Note */}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
-                  {latestLedger ? (
-                    <span>
-                      Latest Cash Log:{' '}
-                      <strong className="text-stone-800">
-                        {latestLedger.bucket === 'reimbursement' ? '+' : '-'}₹{latestLedger.amount}{' '}
-                        ({latestLedger.reason})
-                      </strong>{' '}
-                      · Added by {latestLedger.loggedBy} · {latestLedger.loggedAt}
-                    </span>
-                  ) : (
-                    <span>
-                      Paid Leave Buffer:{' '}
-                      <strong className="text-emerald-800">
-                        {fin.paidLeavesUsed} of {fin.paidLeavesQuota} used
-                      </strong>{' '}
-                      {fin.zeroLeaveBonus > 0
-                        ? `· +₹${fin.zeroLeaveBonus} Zero-Leave Bonus Active`
-                        : ''}
-                    </span>
-                  )}
-                  {fin.partialTaskCut > 0 && (
-                    <span className="text-rose-600 font-medium">
-                      · Task Partial Skip: -₹{fin.partialTaskCut}
-                    </span>
-                  )}
-                </div>
-
-                {/* Card Bottom Actions */}
-                <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onSelectStaffForCalendar(staff.id)}
-                    className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-stone-100 text-stone-800 hover:bg-stone-200 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>
-                      {staff.modelType === 'hourly_visit'
-                        ? 'Hours & Garden Tasks'
-                        : 'Attendance & Tasks'}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSelectStaffForUdhaar(staff.id)}
-                    className="px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-stone-100 text-stone-800 hover:bg-stone-200 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Log Advance / Kharch</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenReceiptModal({
-                        staffName: staff.name,
-                        staffNameHi: staff.nameHi,
-                        phone: staff.phone,
-                        entryTypeLabel: 'Monthly Hisab Summary',
-                        entryTypeLabelHi: 'नवंबर हिसाब पर्ची',
-                        dateStr: `${currentDay} Nov 2026`,
-                        paidLeavesUsed: fin.paidLeavesUsed,
-                        paidLeaveQuota: fin.paidLeavesQuota,
-                        totalBorrowedThisMonth: fin.chhotaAdvanceTotal,
-                        reimbursementsThisMonth: fin.reimbursementsTotal,
-                        activeEmiCut: fin.activeLoanEmiCut,
-                        netPayableLeft: fin.netPayableLeft,
-                        loggedBy: activeMember,
-                      })
-                    }
-                    className="ml-auto px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>{t.sendWhatsAppHindiSlip}</span>
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </article>
+              );
+            })}
+          </div>
         )}
       </section>
 
