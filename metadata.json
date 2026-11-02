@@ -1,0 +1,6 @@
+{
+  "name": "GharKhata — Household Staff & Udhaar Autopilot",
+  "description": "Indian household staff attendance, 3-bucket udhaar & EMI loan engine, Hinglish voice ledger, dhobi piece tracker, and spoken Hindi WhatsApp receipt generator.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
